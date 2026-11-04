@@ -212,7 +212,7 @@ textarea.text-edit { width: 100%; min-height: 76px; resize: vertical; margin-bot
   .tb-hint { display: none; }
   .main { display: flex; flex-direction: column; height: auto; }
   .stage { order: 1; height: calc(100vh - var(--top-h) - var(--tool-h)); height: calc(100svh - var(--top-h) - var(--tool-h)); min-height: 260px; }
-  .library { order: 2; max-height: 60vh; border-right: 0; border-top: 1px solid var(--line); }
+
   .inspector { order: 3; overflow: visible; border-left: 0; border-top: 1px solid var(--line); }
   .canvas-wrap { padding: 12px; }
 }
@@ -379,3 +379,28 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
 @media (max-width: 760px) { .menu-only { display: inline; } }
 @media (hover: none) and (pointer: coarse) { .mouse-only { display: none; } .touch-only { display: inline; } }
 @media (hover: none) and (pointer: coarse) { #helpModal .help-h, #helpModal .shortcut-grid { display: none; } } /* no keyboard on a phone */
+
+/* ---------- phones / narrow windows: the library is a bottom sheet, opened with the + button */
+.sheet-head, .lib-fab, .lib-backdrop { display: none; }
+@media (max-width: 860px) {
+  .stage { position: relative; }
+  .lib-fab {
+    display: flex; align-items: center; justify-content: center; position: absolute; right: 14px; bottom: 110px; z-index: 6;
+    width: 56px; height: 56px; padding: 0; border-radius: 50%; border: 0; background: var(--accent); color: #fff;
+    box-shadow: 0 6px 20px rgba(0,0,0,.45);
+  }
+  .lib-fab:hover { background: #4a7de0; }
+  .lib-fab .ico { width: 26px; height: 26px; stroke-width: 2.2; }
+  .library {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; height: min(72vh, 620px); height: min(72svh, 620px);
+    border: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.5);
+    transform: translateY(105%); visibility: hidden; transition: transform .22s ease, visibility 0s linear .22s;
+  }
+  body.lib-open .library { transform: none; visibility: visible; transition: transform .22s ease; }
+  .lib-backdrop { display: block; position: fixed; inset: 0; z-index: 44; background: rgba(0,0,0,.45); }
+  .lib-backdrop[hidden] { display: none; }
+  .sheet-head { display: flex; align-items: center; gap: 8px; padding: 14px 8px 2px 16px; position: relative; }
+  .sheet-head b { flex: 1; font-size: 15px; }
+  .sheet-grip { position: absolute; top: 6px; left: 50%; width: 40px; height: 4px; margin-left: -20px; border-radius: 2px; background: var(--line); }
+}
+@media (max-width: 860px) and (prefers-reduced-motion: reduce) { .library, body.lib-open .library { transition: none; } }
