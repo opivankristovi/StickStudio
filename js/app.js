@@ -506,10 +506,12 @@
     setZoom(state.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
   }, { passive: false });
 
-  function setZoom(z) { state.zoom = clamp(z, 0.2, 4); closeInline(true); renderCanvas(); }
+  function setZoom(z) { state.zoom = clamp(z, 0.1, 4); closeInline(true); renderCanvas(); }
   function zoomFit() {
     const sc = $('#stageScroll'), F = fmt();
-    const z = Math.min((sc.clientWidth - 60) / F.w, (sc.clientHeight - 60) / F.h);
+    // leave exactly the canvas padding (28 px on desktop, 12 px on phones) plus a hair, instead of a fixed 60 px
+    const m = 2 * (parseFloat(getComputedStyle($('#canvasWrap')).paddingLeft) || 0) + 4;
+    const z = Math.min((sc.clientWidth - m) / F.w, (sc.clientHeight - m) / F.h);
     setZoom(z > 0 ? z : 1);
   }
 
@@ -1205,7 +1207,10 @@
         <svg viewBox="0 0 ${F.w} ${F.h}" style="aspect-ratio:${F.w}/${F.h}">${pageContent(p, { export: true, thumb: true })}</svg><span>${i + 1}</span></button>`;
     }).join('');
     $('#docTitle').value = doc.title || '';
-    const a = $('#pageTabs .active'); if (a) a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    // bring the current page's thumbnail into view by scrolling only the strip: scrollIntoView would also scroll
+    // the whole window on short screens, where the page bar sits below the fold
+    const a = $('#pageTabs .active'), strip = $('#pageTabs');
+    if (a) { const sr = strip.getBoundingClientRect(), ar = a.getBoundingClientRect(); if (ar.left < sr.left) strip.scrollLeft -= sr.left - ar.left + 4; else if (ar.right > sr.right) strip.scrollLeft += ar.right - sr.right + 4; }
   }
   $('#pageTabs').addEventListener('click', e => { const b = e.target.closest('[data-page]'); if (!b) return; goPage(+b.dataset.page); });
   function goPage(i) {
