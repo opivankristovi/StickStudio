@@ -1,5 +1,7 @@
 # StickStudio – stick-figure cartoon maker
 
+**▶ Try it online: https://opivankristovi.github.io/StickStudio/**
+
 Open **`index.html`** in Chrome, Edge or Firefox. Nothing to install and no internet needed.
 `index.html` is a single self-contained file (all styles and code inlined), so you can copy it anywhere.
 
