@@ -946,8 +946,8 @@
     if (pk) h += panelInspector(pk);
     h += section('layout', 'Page layout', `page ${state.page + 1} of ${doc.pages.length}`, `<div class="lib-section">Quick layouts</div>
       <div class="layout-gallery">${LAYOUTS.map((p, i) => `<button data-act="preset" data-i="${i}" title="${esc(p.name)}">${layoutIcon(p)}</button>`).join('')}</div>
-      <label class="row"><span class="lbl">Rows</span><input type="number" min="1" max="10" data-l="rows" value="${L.rows}" data-rebuild>
-        <span class="lbl" style="width:auto">Per row</span><input type="number" min="1" max="10" data-l="allcols" value="${L.cols[0]}" data-rebuild></label>
+      <div class="row pair"><label><span class="lbl">Rows</span><input type="number" min="1" max="10" data-l="rows" value="${L.rows}" data-rebuild></label>
+        <label><span class="lbl">Per row</span><input type="number" min="1" max="10" data-l="allcols" value="${L.cols[0]}" data-rebuild title="Panels in every row"></label></div>
       <div class="rowcols"><span>Row</span><span>Panels (l→r)</span><span>Height</span>
       ${L.cols.map((c, r) => `<span>${r + 1}</span><input type="number" min="1" max="10" data-row="${r}" data-rk="cols" value="${c}"><input type="number" min="0.2" max="5" step="0.1" data-row="${r}" data-rk="heights" value="${L.heights[r]}">`).join('')}</div>
       <p class="hint">Click a panel to change its width, split it or merge it with the next one.</p>
@@ -988,8 +988,8 @@
       h += `<label class="row"><span class="lbl">Right hand</span><select data-k="handR">${opt(FIG.HAND_ITEMS, it.handR !== undefined ? it.handR : (ch.handR || 'none'))}</select></label>`;
       h += `<label class="row"><span class="lbl">Left hand</span><select data-k="handL">${opt(FIG.HAND_ITEMS, it.handL !== undefined ? it.handL : (ch.handL || 'none'))}</select></label>`;
       h += color('Line colour', 'data-k', 'color', it.color || '#1d1d1d');
-      h += `<label class="row"><span class="lbl">Clothes colour</span><input type="color" data-k="cloth" value="${it.cloth || '#ffffff'}"><button data-act="clearCloth" title="Back to default">Default</button></label>`;
-      h += `<label class="row"><span class="lbl">Hair colour</span><input type="color" data-k="hairColor" value="${it.hairColor || '#ffffff'}"><button data-act="clearHair" title="Back to default">Default</button></label>`;
+      h += `<label class="row"><span class="lbl" title="Clothes colour">Clothes</span><input type="color" data-k="cloth" value="${it.cloth || '#ffffff'}"><button data-act="clearCloth" title="Back to default">Default</button></label>`;
+      h += `<label class="row"><span class="lbl" title="Hair colour">Hair</span><input type="color" data-k="hairColor" value="${it.hairColor || '#ffffff'}"><button data-act="clearHair" title="Back to default">Default</button></label>`;
       h += range('Line width', 'data-k', 'lw', it.lw || 4, 1, 10, 0.5);
       h += `<div class="btns"><button data-act="saveChar" title="Keep this look (character, colours, held items) in the library">★ Save as “My character”</button></div>`;
     } else if (it.type === 'object') {
