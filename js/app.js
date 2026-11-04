@@ -50,7 +50,7 @@
   const newDoc = () => ({ id: uid(), title: 'My cartoon', format: 'a4p', mono: false, pages: [newPage()] });
 
   let doc = null;
-  const state = { page: 0, sel: null, selPanel: null, zoom: 1, tab: 'characters', libChar: 'boy', libExpr: 'happy', dragId: null, clipboard: null, guides: [] };
+  const state = { page: 0, sel: null, selPanel: null, zoom: 1, tab: 'characters', libChar: 'boy', libExpr: 'happy', dragId: null, clipboard: null, guides: [], closed: {} };
 
   const fmt = (pg = page()) => FORMATS[(pg && pg.format) || doc.format] || FORMATS.a4p;
   const page = () => doc.pages[state.page];
@@ -651,24 +651,174 @@
     addFromSpec(spec, toPage(e));
   });
 
+  // ------------------------------------------------------------------ icons & tooltips
+  // 24×24 line icons, drawn with currentColor so they follow the button colour
+  const ICONS = {
+    new: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/>',
+    projects: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    open: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v1"/><path d="M3 7v11a1 1 0 0 0 1 1h13.2a1 1 0 0 0 1-.7L21 11H7.2a1 1 0 0 0-1 .7L4 19"/>',
+    save: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+    undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+    redo: '<path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
+    help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6"/><path d="M12 17.5v.01"/>',
+    print: '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
+    image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>',
+    export: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14l3 3 3-3"/>',
+    zoomIn: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4M8 11h6M11 8v6"/>',
+    zoomOut: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4M8 11h6"/>',
+    fit: '<path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/>',
+    duplicate: '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
+    trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
+    flipH: '<path d="M12 3v18" stroke-dasharray="2 3"/><path d="M9 6L3 18h6z" fill="currentColor"/><path d="M15 6l6 12h-6z"/>',
+    flipV: '<path d="M3 12h18" stroke-dasharray="2 3"/><path d="M6 9L18 3v6z" fill="currentColor"/><path d="M6 15l12 6v-6z"/>',
+    rotL: '<path d="M3 4v5h5"/><path d="M3.5 9A9 9 0 1 1 6 18.4"/>',
+    rotR: '<path d="M21 4v5h-5"/><path d="M20.5 9A9 9 0 1 0 18 18.4"/>',
+    bigger: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
+    smaller: '<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>',
+    alignL: '<path d="M4 3v18"/><rect x="8" y="6" width="12" height="4" rx="1"/><rect x="8" y="14" width="7" height="4" rx="1"/>',
+    alignC: '<path d="M12 3v3M12 10v4M12 18v3"/><rect x="5" y="6" width="14" height="4" rx="1"/><rect x="8" y="14" width="8" height="4" rx="1"/>',
+    alignR: '<path d="M20 3v18"/><rect x="4" y="6" width="12" height="4" rx="1"/><rect x="9" y="14" width="7" height="4" rx="1"/>',
+    alignT: '<path d="M3 4h18"/><rect x="6" y="8" width="4" height="12" rx="1"/><rect x="14" y="8" width="4" height="7" rx="1"/>',
+    alignM: '<path d="M3 12h3M10 12h4M18 12h3"/><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="8" width="4" height="8" rx="1"/>',
+    alignB: '<path d="M3 20h18"/><rect x="6" y="4" width="4" height="12" rx="1"/><rect x="14" y="9" width="4" height="7" rx="1"/>',
+    front: '<path d="M5 4h14M12 20V9M7 14l5-5 5 5"/>',
+    forward: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+    backward: '<path d="M12 5v14M6 13l6 6 6-6"/>',
+    back: '<path d="M5 20h14M12 4v11M7 10l5 5 5-5"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    unlock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/>',
+    textL: '<path d="M4 6h16M4 12h10M4 18h13"/>',
+    textC: '<path d="M4 6h16M7 12h10M5.5 18h13"/>',
+    textR: '<path d="M4 6h16M10 12h10M7 18h13"/>',
+    edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    fitText: '<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><path d="M9 9h6M12 9v6"/>',
+    mirrorTail: '<path d="M5 3h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4 4v-4H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M9 8.5h6M9 8.5l1.5-1.5M9 8.5l1.5 1.5M15 8.5l-1.5-1.5M15 8.5l-1.5 1.5"/>',
+    split: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/>',
+    merge: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 12h10M14 9l3 3-3 3"/>',
+    even: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/>',
+    copyNext: '<rect x="2.5" y="5" width="8" height="14" rx="1.5"/><rect x="13.5" y="5" width="8" height="14" rx="1.5"/><path d="M6.5 12h10M14.5 10l2 2-2 2"/>',
+    sceneAll: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><path d="M4.5 9l2.5-3 2.5 3M14.5 9l2.5-3 2.5 3M4.5 19l2.5-3 2.5 3M14.5 19l2.5-3 2.5 3"/>',
+    eraser: '<path d="M8 21h12"/><path d="M4.5 15.5l10-10 5 5-8 8H7.5z"/><path d="M9.5 10.5l5 5"/>',
+    pageAdd: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M12 9v6M9 12h6"/>',
+    chevL: '<path d="M15 6l-6 6 6 6"/>',
+    chevR: '<path d="M9 6l6 6-6 6"/>',
+    cursor: '<path d="M5 3l14 7-6 2-2 6z"/>',
+    figure: '<circle cx="12" cy="5" r="2.5"/><path d="M12 8v7M12 15l-4 6M12 15l4 6M7 10l5 1 5-1"/>',
+    object: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+    balloon: '<path d="M12 4c4.7 0 8.5 2.9 8.5 6.5S16.7 17 12 17c-.9 0-1.8-.1-2.6-.3L5 19.5l1.2-3.9C4.5 14.4 3.5 12.6 3.5 10.5 3.5 6.9 7.3 4 12 4z"/>',
+    panel: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v9"/>',
+  };
+  const icon = (name, size = 18) => `<svg class="ico" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+  /** an icon button for the toolbars; tip = tooltip label, key = shortcut shown in the tooltip */
+  function ibtn(act, ico, tip, o = {}) {
+    const attrs = Object.entries(o.data || {}).map(([k, v]) => ` data-${k}="${esc(v)}"`).join('');
+    return `<button class="ibtn${o.on ? ' on' : ''}${o.cls ? ' ' + o.cls : ''}" ${act ? `data-act="${act}"` : ''}${attrs} data-tip="${esc(tip)}"${o.key ? ` data-key="${esc(o.key)}"` : ''} aria-label="${esc(tip)}"${o.on !== undefined ? ` aria-pressed="${!!o.on}"` : ''}${o.disabled ? ' disabled' : ''}>${o.text || icon(ico)}</button>`;
+  }
+  // static buttons in the page: fill in their icons once
+  $$('[data-icon]').forEach(b => { b.innerHTML = icon(b.dataset.icon); if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', b.dataset.tip || ''); });
+  $$('[data-icon-left]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.iconLeft, 16)); });
+  // one shared tooltip that shows the label, an optional sub-line and the keyboard shortcut
+  const tip = $('#tip'); let tipTimer = null, tipFor = null;
+  function hideTip() { clearTimeout(tipTimer); tipFor = null; tip.hidden = true; }
+  document.addEventListener('mouseover', e => {
+    const b = e.target.closest('[data-tip]');
+    if (b === tipFor) return;
+    hideTip(); if (!b) return;
+    tipFor = b;
+    tipTimer = setTimeout(() => {
+      if (!document.body.contains(b)) return;
+      tip.innerHTML = `<span>${esc(b.dataset.tip)}${b.dataset.key ? ` <kbd>${esc(b.dataset.key)}</kbd>` : ''}</span>${b.dataset.sub ? `<small>${esc(b.dataset.sub)}</small>` : ''}`;
+      tip.hidden = false;
+      const r = b.getBoundingClientRect(), t = tip.getBoundingClientRect();
+      let x = r.left + r.width / 2 - t.width / 2, y = r.bottom + 8;
+      if (y + t.height > innerHeight - 4) y = r.top - t.height - 8;
+      tip.style.left = clamp(x, 6, innerWidth - t.width - 6) + 'px'; tip.style.top = y + 'px';
+    }, 350);
+  });
+  document.addEventListener('mousedown', hideTip, true);
+  document.addEventListener('scroll', hideTip, true);
+
+  // ------------------------------------------------------------------ context toolbar (top)
+  const tbGroup = (label, html) => `<div class="tg" role="group" aria-label="${esc(label)}">${html}</div>`;
+  function renderToolbar() {
+    const it = selItem(), PM = computePanels(page());
+    const pk = state.selPanel && PM.map[state.selPanel] ? state.selPanel : null;
+    let h = '';
+    if (it) {
+      const isBal = it.type === 'balloon', dis = { disabled: !!it.locked };
+      const name = it.type === 'figure' ? FIG.CHARACTERS[it.char].name : it.type === 'object' ? OBJ.OBJECTS[it.obj].name : BAL.STYLES[it.style].name;
+      h += `<div class="tb-sel">${icon(isBal ? 'balloon' : it.type)}<span>${esc(name)}</span></div>`;
+      h += tbGroup('Edit', ibtn('duplicate', 'duplicate', 'Duplicate', { key: 'Ctrl+D' }) + ibtn('delete', 'trash', 'Delete', { key: 'Del', cls: 'danger' }));
+      h += tbGroup('Transform', (isBal
+        ? ibtn('mirrorTail', 'mirrorTail', 'Mirror the tail', dis)
+        : ibtn('flipX', 'flipH', 'Flip horizontally', Object.assign({ key: 'H', on: !!it.flipX }, dis)) + ibtn('flipY', 'flipV', 'Flip vertically', Object.assign({ key: 'V', on: !!it.flipY }, dis)))
+        + ibtn('rotL', 'rotL', 'Rotate left 15°', dis) + ibtn('rotR', 'rotR', 'Rotate right 15°', dis)
+        + ibtn('smaller', 'smaller', 'Smaller', Object.assign({ key: '−' }, dis)) + ibtn('bigger', 'bigger', 'Bigger', Object.assign({ key: '+' }, dis)));
+      h += tbGroup('Align in panel', ['L:alignL:Align left', 'C:alignC:Centre horizontally', 'R:alignR:Align right', 'T:alignT:Align top', 'M:alignM:Centre vertically', 'B:alignB:Align bottom (stand on the panel edge)']
+        .map(s => { const [w, ic, t] = s.split(':'); return ibtn('align', ic, t, Object.assign({ data: { w } }, dis)); }).join(''));
+      h += tbGroup('Arrange', ibtn('front', 'front', 'Bring to front') + ibtn('forward', 'forward', 'Bring forward', { key: ']' }) + ibtn('backward', 'backward', 'Send backward', { key: '[' }) + ibtn('back', 'back', 'Send to back')
+        + ibtn('toggleLock', it.locked ? 'lock' : 'unlock', it.locked ? 'Unlock (make it clickable again)' : 'Lock (clicks go through it)', { on: !!it.locked }));
+      if (isBal) {
+        h += tbGroup('Text', `<select class="tb-select" data-tbk="font" aria-label="Font" data-tip="Font">${opt(BAL.FONTS, it.font)}</select>`
+          + `<input class="tb-num" type="number" min="6" max="200" step="1" data-tbk="size" value="${Math.round(it.size)}" aria-label="Text size" data-tip="Text size">`
+          + ibtn(null, null, 'Bold', { text: '<b>B</b>', on: !!it.bold, data: { toggle: 'bold' } })
+          + ibtn(null, null, 'Italic', { text: '<i>I</i>', on: !!it.italic, data: { toggle: 'italic' } })
+          + ibtn(null, null, 'All capitals', { text: '<span class="caps">AB</span>', on: !!it.upper, data: { toggle: 'upper' } }));
+        h += tbGroup('Text alignment', ['left:textL:Align text left', 'center:textC:Centre text', 'right:textR:Align text right']
+          .map(s => { const [v, ic, t] = s.split(':'); return ibtn(null, ic, t, { on: (it.align || 'center') === v, data: { setk: 'align', v } }); }).join('')
+          + ibtn('editInline', 'edit', 'Edit text on the page', { key: 'Enter' }) + ibtn('fit', 'fitText', 'Fit balloon to text'));
+      }
+    } else if (pk) {
+      const [r, c] = keyRC(pk), n = page().layout.cols[r];
+      h += `<div class="tb-sel">${icon('panel')}<span>Panel ${r + 1}.${c + 1}</span></div>`;
+      h += tbGroup('Panel layout', ibtn('splitPanel', 'split', 'Split into two panels') + ibtn('mergePanel', 'merge', 'Merge with the panel on the right', { disabled: c >= n - 1 }) + ibtn('evenWidths', 'even', 'Make the panels in this row equally wide', { disabled: n < 2 }));
+      h += tbGroup('Panel contents', ibtn('copyNext', 'copyNext', 'Copy scene and contents to the next panel') + ibtn('sceneAll', 'sceneAll', 'Use this scene on all panels') + ibtn('clearPanel', 'eraser', 'Empty this panel', { cls: 'danger' }));
+      h += `<div class="tb-hint">Drag characters, objects or a scene into the panel.</div>`;
+    } else {
+      h += `<div class="tb-sel muted">${icon('cursor')}<span>Nothing selected</span></div>`;
+      h += `<div class="tb-hint">Click something on the page to edit it, or click an empty spot in a panel to change the panel.</div>`;
+    }
+    $('#toolbar').innerHTML = h;
+  }
+  const tb = $('#toolbar');
+  tb.addEventListener('click', e => {
+    const it = selItem(); if (!it) return;
+    const s = e.target.closest('[data-setk]'), t = e.target.closest('[data-toggle]');
+    if (s) { it[s.dataset.setk] = s.dataset.v; }
+    else if (t) { it[t.dataset.toggle] = !it[t.dataset.toggle]; if (it.autoFit !== false) refit(it); }
+    else return;
+    commit(); renderCanvas(); renderInspector();
+  });
+  tb.addEventListener('change', e => {
+    const el = e.target, it = selItem(); if (!it || !el.dataset.tbk) return;
+    let v = el.type === 'number' ? parseFloat(el.value) : el.value;
+    if (el.type === 'number') { if (isNaN(v)) return; v = clamp(v, 6, 200); }
+    it[el.dataset.tbk] = v;
+    if (it.autoFit !== false) refit(it);
+    commit(); renderCanvas(); renderInspector();
+  });
+  tb.addEventListener('keydown', e => e.stopPropagation());
+
   // ------------------------------------------------------------------ inspector (right)
   const opt = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${esc(k)}" ${k === cur ? 'selected' : ''}>${esc(typeof v === 'string' ? v : v.name)}</option>`).join('');
   const range = (label, attr, key, val, min, max, step = 1, extra = '') => `<label class="row"><span class="lbl">${label}</span><input type="range" ${attr}="${key}" min="${min}" max="${max}" step="${step}" value="${val}" ${extra}><span class="val">${Math.round(val * 100) / 100}</span></label>`;
   const color = (label, attr, key, val) => `<label class="row"><span class="lbl">${label}</span><input type="color" ${attr}="${key}" value="${val}"></label>`;
   const check = (label, attr, key, val) => `<label class="row check"><input type="checkbox" ${attr}="${key}" ${val ? 'checked' : ''}> ${label}</label>`;
 
+  /** a collapsible inspector section; open/closed is remembered for the session */
+  const section = (id, title, sub, body) => `<details class="sec" data-sec="${id}" ${state.closed[id] ? '' : 'open'}><summary><span>${title}</span>${sub ? `<small>${sub}</small>` : ''}</summary><div class="sec-body">${body}</div></details>`;
   function renderInspector() {
+    renderToolbar();
     const pg = page(), L = pg.layout, it = selItem();
     let h = '';
     if (it) h += itemInspector(it);
     const PM = computePanels(pg);
     const pk = state.selPanel && PM.map[state.selPanel] ? state.selPanel : null;
     if (pk) h += panelInspector(pk);
-    h += `<div class="sec"><h3>Page layout<small>page ${state.page + 1} of ${doc.pages.length}</small></h3>
-      <div class="lib-section">Quick layouts</div>
+    h += section('layout', 'Page layout', `page ${state.page + 1} of ${doc.pages.length}`, `<div class="lib-section">Quick layouts</div>
       <div class="layout-gallery">${LAYOUTS.map((p, i) => `<button data-act="preset" data-i="${i}" title="${esc(p.name)}">${layoutIcon(p)}</button>`).join('')}</div>
       <label class="row"><span class="lbl">Rows</span><input type="number" min="1" max="10" data-l="rows" value="${L.rows}" data-rebuild>
-        <span class="lbl" style="width:auto">Panels / row</span><input type="number" min="1" max="10" data-l="allcols" value="${L.cols[0]}" data-rebuild></label>
+        <span class="lbl" style="width:auto">Per row</span><input type="number" min="1" max="10" data-l="allcols" value="${L.cols[0]}" data-rebuild></label>
       <div class="rowcols"><span>Row</span><span>Panels (l→r)</span><span>Height</span>
       ${L.cols.map((c, r) => `<span>${r + 1}</span><input type="number" min="1" max="10" data-row="${r}" data-rk="cols" value="${c}"><input type="number" min="0.2" max="5" step="0.1" data-row="${r}" data-rk="heights" value="${L.heights[r]}">`).join('')}</div>
       <p class="hint">Click a panel to change its width, split it or merge it with the next one.</p>
@@ -684,8 +834,7 @@
       ${L.title ? range('Title size', 'data-l', 'titleSize', L.titleSize, 14, 90) + `<label class="row"><span class="lbl">Title font</span><select data-l="titleFont">${opt(BAL.FONTS, L.titleFont)}</select></label>` : ''}
       ${check('Black &amp; white (whole cartoon)', 'data-doc', 'mono', doc.mono)}
       <div class="btns"><button data-act="layoutAll" title="Copy this page's layout settings to every page">Use this layout on all pages</button></div>
-      <p class="hint">Tip: click an empty spot in a panel to select it and pick a scene. Press <b>?</b> at the top for help.</p>
-    </div>`;
+      <p class="hint">Tip: click an empty spot in a panel to select it and pick a scene. Press <b>F1</b> for help.</p>`);
     $('#inspector').innerHTML = h;
   }
   function layoutIcon(p) {
@@ -701,7 +850,7 @@
   }
 
   function itemInspector(it) {
-    let h = `<div class="sec"><h3>${it.type === 'figure' ? FIG.CHARACTERS[it.char].name : it.type === 'object' ? OBJ.OBJECTS[it.obj].name : BAL.STYLES[it.style].name}<small>${it.locked ? '🔒 locked' : ''}</small></h3>`;
+    let h = '';
     if (it.type === 'figure') {
       h += `<label class="row"><span class="lbl">Character</span><select data-k="char" data-rebuild>${opt(FIG.CHARACTERS, it.char)}</select></label>`;
       h += `<div class="lib-section">Pose</div><div class="grid small">${Object.entries(FIG.POSES).map(([pid, p]) => `<div class="thumb ${pid === it.pose ? 'sel' : ''}" data-setk="pose" data-v="${pid}" title="${p.name}">${figThumb(it.char, pid, it.expr, { handL: it.handL, handR: it.handR })}</div>`).join('')}</div>`;
@@ -722,15 +871,7 @@
     } else {
       h += `<label class="row"><span class="lbl">Style</span><select data-k="style" data-rebuild>${opt(BAL.STYLES, it.style)}</select></label>`;
       h += `<textarea class="text-edit" data-k="text" placeholder="Type the text… *bold* _italic_">${esc(it.text)}</textarea>`;
-      h += `<label class="row"><span class="lbl">Font</span><select data-k="font">${opt(BAL.FONTS, it.font)}</select></label>`;
-      h += range('Text size', 'data-k', 'size', it.size, 8, 120);
-      h += `<div class="btns">
-        <button data-toggle="bold" class="${it.bold ? 'on' : ''}"><b>B</b></button>
-        <button data-toggle="italic" class="${it.italic ? 'on' : ''}"><i>I</i></button>
-        <button data-toggle="upper" class="${it.upper ? 'on' : ''}">ABC</button>
-        <button data-setk="align" data-v="left" class="${it.align === 'left' ? 'on' : ''}">⯇ Left</button>
-        <button data-setk="align" data-v="center" class="${(it.align || 'center') === 'center' ? 'on' : ''}">Center</button>
-        <button data-setk="align" data-v="right" class="${it.align === 'right' ? 'on' : ''}">Right ⯈</button></div>`;
+      h += `<p class="hint">Font, size, bold and alignment are in the toolbar at the top.</p>`;
       h += it.style === 'sfx' ? color('Fill', 'data-k', 'fill', it.fill || '#ffd23c') + color('Outline', 'data-k', 'stroke', it.stroke || '#1d1d1d')
         : color('Text colour', 'data-k', 'color', it.color || '#1d1d1d') + (it.style !== 'text' ? color('Balloon fill', 'data-k', 'fill', it.fill && it.fill !== 'none' ? it.fill : '#ffffff') + color('Outline', 'data-k', 'stroke', it.stroke || '#1d1d1d') + range('Outline width', 'data-k', 'lw', it.lw || 2.5, 0.5, 8, 0.5) : '');
       if (BAL.STYLES[it.style].tail) {
@@ -738,20 +879,14 @@
         if (it.style !== 'thought' && it.style !== 'shout') h += range('Tail curve', 'data-k', 'bend', it.bend !== undefined ? it.bend : 0.4, -1.5, 1.5, 0.1);
       }
       h += check('Auto-size to text', 'data-k', 'autoFit', it.autoFit !== false);
-      h += `<div class="btns"><button data-act="fit">Fit balloon to text</button><button data-act="editInline">Edit on canvas</button></div>`;
     }
     // common
-    h += range('Rotation', 'data-k', 'rot', it.rot || 0, -180, 180);
-    h += range('Opacity', 'data-k', 'opacity', it.opacity != null ? it.opacity : 1, 0.1, 1, 0.05);
-    h += `<div class="btns">
-      ${it.type !== 'balloon' ? `<button data-act="flipX" class="${it.flipX ? 'on' : ''}" title="Flip horizontally (H)">⇆ Flip</button><button data-act="flipY" class="${it.flipY ? 'on' : ''}" title="Flip vertically (V)">⇅ Flip</button>` : `<button data-act="mirrorTail" title="Mirror the tail">⇆ Mirror tail</button>`}
-      <button data-act="bigger" title="Larger">＋ Size</button><button data-act="smaller" title="Smaller">－ Size</button></div>
-      <div class="btns"><button data-act="front" title="Bring to front">⤒ Front</button><button data-act="forward" title="Forward ( ] )">↑</button><button data-act="backward" title="Backward ( [ )">↓</button><button data-act="back" title="Send to back">⤓ Back</button></div>
-      ${check('Clip to panel border', 'data-k', 'clip', it.clip !== false)}
-      ${it.type !== 'balloon' ? check('Black &amp; white', 'data-k', 'mono', !!it.mono) : ''}
-      ${check('Lock (click-through)', 'data-k', 'locked', !!it.locked)}
-      <div class="btns"><button data-act="duplicate">Duplicate</button><button data-act="delete" class="danger">Delete</button></div></div>`;
-    return h;
+    const more = range('Rotation', 'data-k', 'rot', it.rot || 0, -180, 180)
+      + range('Opacity', 'data-k', 'opacity', it.opacity != null ? it.opacity : 1, 0.1, 1, 0.05)
+      + check('Clip to panel border', 'data-k', 'clip', it.clip !== false)
+      + (it.type !== 'balloon' ? check('Black &amp; white', 'data-k', 'mono', !!it.mono) : '');
+    const name = it.type === 'figure' ? FIG.CHARACTERS[it.char].name : it.type === 'object' ? OBJ.OBJECTS[it.obj].name : BAL.STYLES[it.style].name;
+    return section('item', esc(name), it.locked ? 'locked' : '', h) + section('itemMore', 'Rotation &amp; opacity', '', more);
   }
 
   function faceThumb(it, expr) {
@@ -769,9 +904,8 @@
     const items = page().items.filter(i => i.panel === key);
     const [r, c] = key.split('-').map(Number);
     const L = page().layout, n = L.cols[r];
-    let h = `<div class="sec"><h3>Panel ${r + 1}.${c + 1}<small>row ${r + 1}, panel ${c + 1}</small></h3>
+    const h = section('panel', `Panel ${r + 1}.${c + 1}`, `row ${r + 1}, panel ${c + 1}`, `
       ${n > 1 ? range('Width', 'data-pw', 'w', L.widths[r][c], 0.2, 5, 0.1) : ''}
-      <div class="btns"><button data-act="splitPanel" title="Split this panel in two (left / right)">⇹ Split</button>${c < n - 1 ? `<button data-act="mergePanel" title="Merge with the panel to the right">⇥ Merge right</button>` : ''}${n > 1 ? `<button data-act="evenWidths" title="Make all panels in this row equally wide">Even widths</button>` : ''}</div>
       <label class="row"><span class="lbl">Scene</span><select data-p="scene">${opt(OBJ.SCENES, pd.scene || 'none')}</select></label>
       ${range('Scene zoom', 'data-p', 'sceneZoom', pd.sceneZoom || 1, 0.5, 3, 0.05)}
       ${range('Scene shift', 'data-p', 'sceneX', pd.sceneX || 0, -200, 200, 2)}
@@ -780,10 +914,8 @@
       ${check('Scene in black &amp; white', 'data-p', 'sceneMono', !!pd.sceneMono)}
       ${color('Background', 'data-p', 'bg', pd.bg || '#ffffff')}
       ${check('Hide border', 'data-p', 'noBorder', !!pd.noBorder)}
-      <div class="btns"><button data-act="sceneAll">Use scene on all panels</button><button data-act="copyNext" title="Copy scene and contents to the next panel – handy for the next moment in the same place">Copy to next panel</button><button data-act="clearPanel" class="danger">Empty panel</button></div>
       <div class="lib-section">Layers in this panel (top first)</div>
-      <ul class="layers">${items.slice().reverse().map(i => `<li data-selid="${i.id}" class="${i.id === state.sel ? 'sel' : ''}"><span class="nm">${esc(itemLabel(i))}</span><button data-lock="${i.id}" title="Lock / unlock">${i.locked ? '🔒' : '🔓'}</button></li>`).join('') || '<li class="hint">Empty – drag something in!</li>'}</ul>
-    </div>`;
+      <ul class="layers">${items.slice().reverse().map(i => `<li data-selid="${i.id}" class="${i.id === state.sel ? 'sel' : ''}"><span class="nm">${esc(itemLabel(i))}</span><button data-lock="${i.id}" title="Lock / unlock">${i.locked ? '🔒' : '🔓'}</button></li>`).join('') || '<li class="hint">Empty – drag something in!</li>'}</ul>`);
     return h;
   }
   const itemLabel = i => i.type === 'figure' ? `${FIG.CHARACTERS[i.char].name} – ${FIG.POSES[i.pose].name}` : i.type === 'object' ? OBJ.OBJECTS[i.obj].name : `${BAL.STYLES[i.style].name}: “${(i.text || '').slice(0, 24)}”`;
@@ -847,6 +979,8 @@
     commit();
   });
   insp.addEventListener('keydown', e => e.stopPropagation());
+  // remember collapsed sections (click fires before the details element toggles, so d.open is the old state)
+  insp.addEventListener('click', e => { const sm = e.target.closest('summary'); const d = sm && sm.parentElement; if (d && d.dataset.sec) state.closed[d.dataset.sec] = d.open; }, true);
   insp.addEventListener('click', e => {
     const it = selItem();
     const s = e.target.closest('[data-setk]');
@@ -873,6 +1007,24 @@
     const it = selItem(); if (!it) return;
     it.w *= k; it.h *= k;
     if (it.type === 'balloon') { it.tx *= k; it.ty *= k; it.size = Math.round(it.size * k * 10) / 10; }
+    commit(); renderCanvas(); renderInspector();
+  }
+  function rotateSel(d) {
+    const it = selItem(); if (!it || it.locked) return;
+    let r = Math.round(((it.rot || 0) + d) / 15) * 15; // snap to 15° steps
+    if (r > 180) r -= 360; if (r < -180) r += 360;
+    it.rot = r; commit(); renderCanvas(); renderInspector();
+  }
+  /** move the selected item to an edge or the centre of its panel (L C R T M B) */
+  function alignSel(where) {
+    const it = selItem(); if (!it || it.locked) return;
+    const P = panelFor(it, computePanels(page()));
+    const a = (it.rot || 0) * Math.PI / 180, co = Math.abs(Math.cos(a)), si = Math.abs(Math.sin(a));
+    const hw = (it.w * co + it.h * si) / 2, hh = (it.w * si + it.h * co) / 2;
+    // an upright figure stands on the panel edge with its feet, not with the empty space below them
+    const below = it.type === 'figure' && !it.rot && !it.flipY ? (FIG.NH - FIG.GROUND) * it.h / FIG.NH : 0;
+    if (where === 'L') it.x = hw; else if (where === 'C') it.x = P.w / 2; else if (where === 'R') it.x = P.w - hw;
+    else if (where === 'T') it.y = hh; else if (where === 'M') it.y = P.h / 2; else if (where === 'B') it.y = P.h - hh + below;
     commit(); renderCanvas(); renderInspector();
   }
   function deleteSel() {
@@ -1086,6 +1238,9 @@
     flipY() { const it = selItem(); if (it) { it.flipY = !it.flipY; commit(); renderCanvas(); renderInspector(); } },
     mirrorTail() { const it = selItem(); if (it) { it.tx = -it.tx; commit(); renderCanvas(); } },
     bigger() { resizeSel(1.1); }, smaller() { resizeSel(1 / 1.1); },
+    rotL() { rotateSel(-15); }, rotR() { rotateSel(15); },
+    align(b) { alignSel(b.dataset.w); },
+    toggleLock() { const it = selItem(); if (it) { it.locked = !it.locked; commit(); renderCanvas(); renderInspector(); } },
     front() { layer('front'); }, back() { layer('back'); }, forward() { layer('forward'); }, backward() { layer('backward'); },
     duplicate: duplicateSel, delete: deleteSel,
     fit() { const it = selItem(); if (it) { refit(it); commit(); renderCanvas(); } },
@@ -1167,6 +1322,8 @@
     }
     else if (e.key.toLowerCase() === 'h') actions.flipX();
     else if (e.key.toLowerCase() === 'v') actions.flipY();
+    else if (e.key === '+' || e.key === '=') resizeSel(1.1);
+    else if (e.key === '-' || e.key === '_') resizeSel(1 / 1.1);
     else if (e.key === ']') layer('forward');
     else if (e.key === '[') layer('backward');
     else if (e.key === 'Enter' && it.type === 'balloon') { e.preventDefault(); openInline(it); }
