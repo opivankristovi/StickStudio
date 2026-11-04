@@ -367,6 +367,14 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   .modal-actions button { flex: 1; }
 }
 
+/* ---------- Projects list on phones: name and details on their own line, buttons on a row below */
+@media (max-width: 480px) {
+  .project-list li { flex-wrap: wrap; row-gap: 8px; }
+  .project-list li > div { flex-basis: 100%; }
+  .project-list li b { white-space: normal; overflow-wrap: anywhere; }
+  .project-list li button { flex: 1; }
+}
+
 </style>
 </head>
 <body>
