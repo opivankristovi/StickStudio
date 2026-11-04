@@ -522,17 +522,28 @@
     const PM = computePanels(page()), P = panelFor(it, PM);
     const inner = BAL.innerSize(it);
     const z = state.zoom;
-    const w = Math.max(inner.w * z + 16, 140), h = Math.max(inner.h * z + 16, 50);
-    const sr = svg.getBoundingClientRect(), wr = $('#canvasWrap').getBoundingClientRect();
-    const cx = sr.left - wr.left + (P.x + it.x) * z, cy = sr.top - wr.top + (P.y + it.y) * z;
+    // type at a readable size: at least 16 px (smaller text is hard to read, and iPhones zoom the page in for it),
+    // and grow the box by the same factor, but keep it inside the visible part of the canvas
+    const fs = Math.max(it.size * z, 16), k = fs / (it.size * z);
+    const sc = $('#stageScroll').getBoundingClientRect(), wr = $('#canvasWrap').getBoundingClientRect(), sr = svg.getBoundingClientRect();
+    const visW = Math.min(sc.width, innerWidth) - 16, visH = Math.min(sc.height, innerHeight) - 16;
+    const w = clamp(inner.w * z * k + 16, Math.min(160, visW), visW), h = clamp(inner.h * z * k + 16, Math.min(56, visH), Math.max(56, visH * 0.6));
+    // centre on the balloon, then nudge into the visible canvas area (coordinates relative to #canvasWrap)
+    const cx = sr.left + (P.x + it.x) * z, cy = sr.top + (P.y + it.y) * z;
+    const lo = Math.max(sc.left, 0) + 8, to = Math.max(sc.top, 0) + 8;
+    const left = clamp(cx - w / 2, lo, Math.max(lo, Math.min(sc.right, innerWidth) - 8 - w)) - wr.left;
+    const top = clamp(cy - h / 2, to, Math.max(to, Math.min(sc.bottom, innerHeight) - 8 - h)) - wr.top;
     Object.assign(inline.style, {
-      left: (cx - w / 2) + 'px', top: (cy - h / 2) + 'px', width: w + 'px', height: h + 'px',
-      fontFamily: it.font, fontSize: (it.size * z) + 'px', fontWeight: it.bold ? 'bold' : 'normal', fontStyle: it.italic ? 'italic' : 'normal',
+      left: left + 'px', top: top + 'px', width: w + 'px', height: h + 'px',
+      fontFamily: it.font, fontSize: fs + 'px', fontWeight: it.bold ? 'bold' : 'normal', fontStyle: it.italic ? 'italic' : 'normal',
       textAlign: it.align || 'center', textTransform: it.upper ? 'uppercase' : 'none', color: it.style === 'sfx' ? '#1d1d1d' : it.color
     });
     inline.value = it.text || '';
     inline.hidden = false; inlineId = it.id;
-    inline.focus(); inline.select();
+    toggleToolbarMenu(false); // "Edit text" may have been chosen from the ⋯ menu, which would cover the editor
+    inline.focus({ preventScroll: true }); inline.select();
+    // on phones the on-screen keyboard shrinks the visible area a moment later: keep the editor in view
+    setTimeout(() => { if (inlineId === it.id) inline.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }, 350);
   }
   function closeInline(keep) {
     if (!inlineId) return;
