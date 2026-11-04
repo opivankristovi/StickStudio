@@ -366,3 +366,9 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   .project-list li b { white-space: normal; overflow-wrap: anywhere; }
   .project-list li button { flex: 1; }
 }
+
+/* ---------- Help on narrow screens: one shortcut per line instead of two side by side */
+@media (max-width: 560px) {
+  .shortcut-grid { grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; }
+  .help-steps { padding-left: 18px; }
+}
