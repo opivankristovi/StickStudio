@@ -81,7 +81,7 @@ button.with-icon { display: inline-flex; align-items: center; gap: 6px; padding:
 .tb-sel { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 2px; font-weight: 600; white-space: nowrap; color: var(--ink); flex-shrink: 0; min-width: 120px; }
 .tb-sel .ico { color: var(--accent); }
 .tb-sel.muted, .tb-sel.muted .ico { color: var(--muted); font-weight: 400; }
-.tb-hint { color: var(--muted); padding-left: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-hint { color: var(--muted); padding-left: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1 1 0; min-width: 0; }
 .tb-select { height: 30px; max-width: 128px; margin-right: 2px; border-radius: 7px; }
 .tb-num { width: 56px; height: 30px; margin-right: 4px; border-radius: 7px; }
 
@@ -282,6 +282,26 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
 .picker.faces .thumb svg { height: 44px; }
 .picker .thumb span { font-size: 10.5px; }
 .picker .thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------- toolbar on smaller screens: compact mode and the ⋯ menu (see fitToolbar) */
+.toolbar.compact { padding: 0 8px; }
+.toolbar.compact .tg { padding: 0 3px; }
+.toolbar.compact .tb-sel { min-width: 0; padding-right: 6px; }
+.toolbar.compact .tb-sel span, .toolbar.compact > .tg .pick-lbl { display: none; }
+.toolbar.compact > .tg .pick { padding-right: 4px; gap: 2px; }
+.toolbar.compact > .tg .tb-select { max-width: 92px; }
+.toolbar.compact > .tg .tb-num { width: 48px; }
+.tb-more { flex-shrink: 0; padding-left: 4px; border-left: 1px solid var(--line); }
+.tb-more[hidden] { display: none; }
+.tb-menu {
+  position: fixed; z-index: 64; display: flex; flex-direction: column; gap: 2px; padding: 6px; min-width: 220px; max-width: calc(100vw - 16px);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.5);
+}
+.tb-menu[hidden] { display: none; }
+.tb-menu-row { display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 6px; }
+.tb-menu-row + .tb-menu-row { border-top: 1px solid var(--line); padding-top: 8px; }
+.tb-menu-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; padding: 0 2px; }
+.tb-menu .tg { border-left: 0; padding: 0; flex-wrap: wrap; }
 
 </style>
 </head>
@@ -1990,6 +2010,7 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     object: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
     balloon: '<path d="M12 4c4.7 0 8.5 2.9 8.5 6.5S16.7 17 12 17c-.9 0-1.8-.1-2.6-.3L5 19.5l1.2-3.9C4.5 14.4 3.5 12.6 3.5 10.5 3.5 6.9 7.3 4 12 4z"/>',
     panel: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v9"/>',
+    more: '<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>',
   };
   const icon = (name, size = 18) => `<svg class="ico" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
   /** an icon button for the toolbars; tip = tooltip label, key = shortcut shown in the tooltip */
@@ -2022,7 +2043,9 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   document.addEventListener('scroll', hideTip, true);
 
   // ------------------------------------------------------------------ context toolbar (top)
-  const tbGroup = (label, html) => `<div class="tg" role="group" aria-label="${esc(label)}">${html}</div>`;
+  /** a toolbar group; prio = when space runs out, groups with a higher prio move into the ⋯ menu first (no prio: always visible) */
+  let tbOrder = 0;
+  const tbGroup = (label, html, prio) => `<div class="tg" role="group" aria-label="${esc(label)}" data-order="${tbOrder++}"${prio ? ` data-prio="${prio}"` : ''}>${html}</div>`;
   function renderToolbar() {
     const it = selItem(), PM = computePanels(page());
     if (!picker.hidden && (!it || it.id !== pickerFor)) resetPicker(); // selection moved on
@@ -2033,39 +2056,83 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
       const name = it.type === 'figure' ? FIG.CHARACTERS[it.char].name : it.type === 'object' ? OBJ.OBJECTS[it.obj].name : BAL.STYLES[it.style].name;
       h += `<div class="tb-sel">${icon(isBal ? 'balloon' : it.type)}<span>${esc(name)}</span></div>`;
       if (it.type === 'figure') h += tbGroup('Look', pickBtn('pose', it) + pickBtn('expr', it));
-      h += tbGroup('Edit', ibtn('duplicate', 'duplicate', 'Duplicate', { key: 'Ctrl+D' }) + ibtn('delete', 'trash', 'Delete', { key: 'Del', cls: 'danger' }));
+      h += tbGroup('Edit', ibtn('duplicate', 'duplicate', 'Duplicate', { key: 'Ctrl+D' }) + ibtn('delete', 'trash', 'Delete', { key: 'Del', cls: 'danger' }), 2);
       h += tbGroup('Transform', (isBal
         ? ibtn('mirrorTail', 'mirrorTail', 'Mirror the tail', dis)
         : ibtn('flipX', 'flipH', 'Flip horizontally', Object.assign({ key: 'H', on: !!it.flipX }, dis)) + ibtn('flipY', 'flipV', 'Flip vertically', Object.assign({ key: 'V', on: !!it.flipY }, dis)))
         + ibtn('rotL', 'rotL', 'Rotate left 15°', dis) + ibtn('rotR', 'rotR', 'Rotate right 15°', dis)
-        + ibtn('smaller', 'smaller', 'Smaller', Object.assign({ key: '−' }, dis)) + ibtn('bigger', 'bigger', 'Bigger', Object.assign({ key: '+' }, dis)));
+        + ibtn('smaller', 'smaller', 'Smaller', Object.assign({ key: '−' }, dis)) + ibtn('bigger', 'bigger', 'Bigger', Object.assign({ key: '+' }, dis)), 3);
       h += tbGroup('Align in panel', ['L:alignL:Align left', 'C:alignC:Centre horizontally', 'R:alignR:Align right', 'T:alignT:Align top', 'M:alignM:Centre vertically', 'B:alignB:Align bottom (stand on the panel edge)']
-        .map(s => { const [w, ic, t] = s.split(':'); return ibtn('align', ic, t, Object.assign({ data: { w } }, dis)); }).join(''));
+        .map(s => { const [w, ic, t] = s.split(':'); return ibtn('align', ic, t, Object.assign({ data: { w } }, dis)); }).join(''), 5);
       h += tbGroup('Arrange', ibtn('front', 'front', 'Bring to front') + ibtn('forward', 'forward', 'Bring forward', { key: ']' }) + ibtn('backward', 'backward', 'Send backward', { key: '[' }) + ibtn('back', 'back', 'Send to back')
-        + ibtn('toggleLock', it.locked ? 'lock' : 'unlock', it.locked ? 'Unlock (make it clickable again)' : 'Lock (clicks go through it)', { on: !!it.locked }));
+        + ibtn('toggleLock', it.locked ? 'lock' : 'unlock', it.locked ? 'Unlock (make it clickable again)' : 'Lock (clicks go through it)', { on: !!it.locked }), 6);
       if (isBal) {
         h += tbGroup('Text', `<select class="tb-select" data-tbk="font" aria-label="Font" data-tip="Font">${opt(BAL.FONTS, it.font)}</select>`
-          + `<input class="tb-num" type="number" min="6" max="200" step="1" data-tbk="size" value="${Math.round(it.size)}" aria-label="Text size" data-tip="Text size">`
-          + ibtn(null, null, 'Bold', { text: '<b>B</b>', on: !!it.bold, data: { toggle: 'bold' } })
+          + `<input class="tb-num" type="number" min="6" max="200" step="1" data-tbk="size" value="${Math.round(it.size)}" aria-label="Text size" data-tip="Text size">`);
+        h += tbGroup('Text style', ibtn(null, null, 'Bold', { text: '<b>B</b>', on: !!it.bold, data: { toggle: 'bold' } })
           + ibtn(null, null, 'Italic', { text: '<i>I</i>', on: !!it.italic, data: { toggle: 'italic' } })
-          + ibtn(null, null, 'All capitals', { text: '<span class="caps">AB</span>', on: !!it.upper, data: { toggle: 'upper' } }));
+          + ibtn(null, null, 'All capitals', { text: '<span class="caps">AB</span>', on: !!it.upper, data: { toggle: 'upper' } }), 1);
         h += tbGroup('Text alignment', ['left:textL:Align text left', 'center:textC:Centre text', 'right:textR:Align text right']
           .map(s => { const [v, ic, t] = s.split(':'); return ibtn(null, ic, t, { on: (it.align || 'center') === v, data: { setk: 'align', v } }); }).join('')
-          + ibtn('editInline', 'edit', 'Edit text on the page', { key: 'Enter' }) + ibtn('fit', 'fitText', 'Fit balloon to text'));
+          + ibtn('editInline', 'edit', 'Edit text on the page', { key: 'Enter' }) + ibtn('fit', 'fitText', 'Fit balloon to text'), 4);
       }
     } else if (pk) {
       const [r, c] = keyRC(pk), n = page().layout.cols[r];
       h += `<div class="tb-sel">${icon('panel')}<span>Panel ${r + 1}.${c + 1}</span></div>`;
-      h += tbGroup('Panel layout', ibtn('splitPanel', 'split', 'Split into two panels') + ibtn('mergePanel', 'merge', 'Merge with the panel on the right', { disabled: c >= n - 1 }) + ibtn('evenWidths', 'even', 'Make the panels in this row equally wide', { disabled: n < 2 }));
-      h += tbGroup('Panel contents', ibtn('copyNext', 'copyNext', 'Copy scene and contents to the next panel') + ibtn('sceneAll', 'sceneAll', 'Use this scene on all panels') + ibtn('clearPanel', 'eraser', 'Empty this panel', { cls: 'danger' }));
+      h += tbGroup('Panel layout', ibtn('splitPanel', 'split', 'Split into two panels') + ibtn('mergePanel', 'merge', 'Merge with the panel on the right', { disabled: c >= n - 1 }) + ibtn('evenWidths', 'even', 'Make the panels in this row equally wide', { disabled: n < 2 }), 1);
+      h += tbGroup('Panel contents', ibtn('copyNext', 'copyNext', 'Copy scene and contents to the next panel') + ibtn('sceneAll', 'sceneAll', 'Use this scene on all panels') + ibtn('clearPanel', 'eraser', 'Empty this panel', { cls: 'danger' }), 2);
       h += `<div class="tb-hint">Drag characters, objects or a scene into the panel.</div>`;
     } else {
       h += `<div class="tb-sel muted">${icon('cursor')}<span>Nothing selected</span></div>`;
       h += `<div class="tb-hint">Click something on the page to edit it, or click an empty spot in a panel to change the panel.</div>`;
     }
+    h += `<div class="tb-more" hidden><button class="ibtn" data-tbmore data-tip="More tools" aria-label="More tools" aria-haspopup="true" aria-expanded="false">${icon('more')}</button><div class="tb-menu" role="group" aria-label="More tools" hidden></div></div>`;
     $('#toolbar').innerHTML = h;
+    fitToolbar();
   }
+  /**
+   * Make the toolbar fit its width: first go compact (icons only for labels), then move groups into
+   * the ⋯ menu, highest data-prio first. The menu lists them in their usual left-to-right order.
+   */
+  function fitToolbar() {
+    const bar = $('#toolbar'), more = bar.querySelector('.tb-more'), menu = more.querySelector('.tb-menu');
+    const over = () => bar.scrollWidth > bar.clientWidth + 1;
+    bar.classList.remove('compact');
+    if (!over()) return;
+    bar.classList.add('compact');
+    if (!over()) return;
+    const groups = $$('#toolbar > .tg[data-prio]').sort((a, b) => b.dataset.prio - a.dataset.prio);
+    if (!groups.length) return;
+    more.hidden = false;
+    const moved = [];
+    for (const g of groups) {
+      if (!over()) break;
+      moved.push(g); bar.removeChild(g);
+    }
+    // keep the original order inside the menu, each group under its name
+    moved.sort((a, b) => a.dataset.order - b.dataset.order).forEach(g => {
+      const row = document.createElement('div'); row.className = 'tb-menu-row';
+      row.innerHTML = `<span class="tb-menu-lbl">${esc(g.getAttribute('aria-label'))}</span>`;
+      row.appendChild(g); menu.appendChild(row);
+    });
+  }
+  function toggleToolbarMenu(show) {
+    const more = $('#toolbar .tb-more'); if (!more || more.hidden) return;
+    const menu = more.querySelector('.tb-menu'), btn = more.querySelector('[data-tbmore]');
+    show = show === undefined ? menu.hidden : show;
+    menu.hidden = !show; btn.setAttribute('aria-expanded', show); btn.classList.toggle('on', show);
+    if (show) {
+      const r = btn.getBoundingClientRect();
+      menu.style.top = (r.bottom + 6) + 'px';
+      menu.style.left = clamp(r.right - menu.offsetWidth, 8, innerWidth - menu.offsetWidth - 8) + 'px';
+      const f = menu.querySelector('button:not(:disabled), select, input'); if (f) f.focus({ preventScroll: true });
+    }
+  }
+  let fitRaf = 0;
+  window.addEventListener('resize', () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(renderToolbar); });
+  document.addEventListener('mousedown', e => { if (!e.target.closest('#toolbar .tb-more')) toggleToolbarMenu(false); }, true);
   const tb = $('#toolbar');
+  tb.addEventListener('click', e => { if (e.target.closest('[data-tbmore]')) toggleToolbarMenu(); });
   tb.addEventListener('click', e => {
     const it = selItem(); if (!it) return;
     const s = e.target.closest('[data-setk]'), t = e.target.closest('[data-toggle]');
@@ -2082,7 +2149,10 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     if (it.autoFit !== false) refit(it);
     commit(); renderCanvas(); renderInspector();
   });
-  tb.addEventListener('keydown', e => e.stopPropagation());
+  tb.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Escape' && e.target.closest('.tb-menu')) { toggleToolbarMenu(false); const b = $('#toolbar [data-tbmore]'); if (b) b.focus(); }
+  });
 
   // ------------------------------------------------------------------ pose / face picker (popover)
   /** a compact button that shows the current pose or face and opens the picker */
@@ -2114,7 +2184,9 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
       <div class="picker-grid">${entries.map(([k, name]) => `<button class="thumb${k === cur ? ' sel' : ''}" aria-pressed="${k === cur}" data-pickv="${k}" title="${esc(name)}">${isPose ? figThumb(it.char, k, it.expr, { handL: it.handL, handR: it.handR }) : faceThumb(it, k)}<span>${esc(name)}</span></button>`).join('')}</div>`;
     picker.hidden = false;
     // place it under the button, kept inside the window
-    const r = anchor.getBoundingClientRect(), w = picker.offsetWidth, h = picker.offsetHeight;
+    let r = anchor.getBoundingClientRect();
+    if (!r.width) r = ($('#toolbar [data-tbmore]') || $('#toolbar')).getBoundingClientRect(); // its button is in the closed ⋯ menu
+    const w = picker.offsetWidth, h = picker.offsetHeight;
     let x = r.left, y = r.bottom + 6;
     if (x + w > innerWidth - 8) x = Math.max(8, r.right - w);
     if (y + h > innerHeight - 8) y = Math.max(8, Math.min(r.top - h - 6, innerHeight - h - 8));
