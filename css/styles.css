@@ -244,3 +244,33 @@ textarea.text-edit { width: 100%; min-height: 76px; resize: vertical; margin-bot
 .shortcut-grid { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 5px 10px; align-items: center; }
 kbd { background: var(--field); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-family: inherit; font-size: 12px; white-space: nowrap; justify-self: start; }
 @media print { body > *:not(#printFrame) { display: none !important; } }
+
+/* ---------- pose / face picker */
+.pick {
+  height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px 0 3px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--field); max-width: 170px;
+}
+.pick.open { border-color: var(--accent); background: var(--accent-soft); }
+.pick-art { width: 26px; height: 26px; background: var(--thumb); border-radius: 6px; display: flex; overflow: hidden; flex-shrink: 0; }
+.pick-art svg { width: 100%; height: 100%; display: block; }
+.pick-lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick .ico { color: var(--muted); }
+.toolbar .pick + .pick { margin-left: 4px; }
+.row .pick { flex: 1; max-width: none; min-width: 0; }
+.row .pick .pick-lbl { flex: 1; text-align: left; }
+.picker {
+  position: fixed; z-index: 65; width: 400px; max-width: calc(100vw - 16px); max-height: min(70vh, 560px); display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.5); overflow: hidden;
+}
+.picker[hidden] { display: none; }
+.picker.faces { width: 320px; }
+.picker-head { display: flex; align-items: baseline; gap: 8px; padding: 10px 12px 8px; border-bottom: 1px solid var(--line); }
+.picker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 10px; overflow-y: auto; }
+.picker.faces .picker-grid { grid-template-columns: repeat(4, 1fr); }
+.picker .thumb { cursor: pointer; padding: 4px 2px; }
+.picker .thumb:hover { background: var(--thumb); }
+.picker .thumb.sel, .picker .thumb.sel:hover { background: #cfdcf7; }
+.picker .thumb svg { height: 58px; }
+.picker.faces .thumb svg { height: 44px; }
+.picker .thumb span { font-size: 10.5px; }
+.picker .thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

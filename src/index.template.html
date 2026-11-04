@@ -124,7 +124,7 @@
       <li><b>Pick a layout</b> on the right (Page layout). Use a preset, or set rows and panels per row. Click a panel to split or merge it, or to change its width.</li>
       <li><b>Drag a scene</b> from the <i>Scenes</i> tab onto a panel.</li>
       <li><b>Drag characters, objects and balloons</b> into the panels. Double-click a balloon to type.</li>
-      <li><b>Select something</b> and use the <b>toolbar at the top</b> to flip, rotate, resize, align it in its panel or change its layer. Pose, face and colours are on the right.</li>
+      <li><b>Select something</b> and use the <b>toolbar at the top</b> to change a character's pose and face, or to flip, rotate, resize, align it in its panel or change its layer. Colours and other settings are on the right.</li>
       <li><b>Add pages</b> with the buttons at the bottom. Drag the page thumbnails to put them in a different order.</li>
       <li><b>Export PDF</b> when you're done. Your work saves automatically, and <i>Projects</i> lists all your cartoons.</li>
     </ol>
@@ -137,7 +137,7 @@
       <kbd>Ctrl+Z / Y</kbd><span>undo / redo</span><kbd>Ctrl+S</kbd><span>save file</span>
       <kbd>Ctrl+O</kbd><span>open file</span><kbd>Ctrl+E</kbd><span>export</span>
       <kbd>Ctrl+P</kbd><span>print</span><kbd>PgUp / PgDn</kbd><span>previous / next page</span>
-      <kbd>Ctrl+wheel</kbd><span>zoom</span><kbd>Esc</kbd><span>deselect</span><kbd>+ / −</kbd><span>bigger / smaller</span><kbd>Ctrl while dragging</kbd><span>no snapping</span>
+      <kbd>Ctrl+wheel</kbd><span>zoom</span><kbd>Esc</kbd><span>deselect</span><kbd>+ / −</kbd><span>bigger / smaller</span><kbd>P / F</kbd><span>pick pose / face</span><kbd>Ctrl while dragging</kbd><span>no snapping</span>
     </div>
     <div class="modal-actions"><button data-act="closeModal" class="primary">Let's go!</button></div>
   </div>
@@ -145,6 +145,7 @@
 
 <div id="toast" class="toast" hidden></div>
 <div id="tip" class="tip" role="tooltip" hidden></div>
+<div id="picker" class="picker" role="dialog" hidden></div>
 
 <script src="js/figures.js"></script>
 <script src="js/objects.js"></script>

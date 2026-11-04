@@ -742,12 +742,14 @@
   const tbGroup = (label, html) => `<div class="tg" role="group" aria-label="${esc(label)}">${html}</div>`;
   function renderToolbar() {
     const it = selItem(), PM = computePanels(page());
+    if (!picker.hidden && (!it || it.id !== pickerFor)) resetPicker(); // selection moved on
     const pk = state.selPanel && PM.map[state.selPanel] ? state.selPanel : null;
     let h = '';
     if (it) {
       const isBal = it.type === 'balloon', dis = { disabled: !!it.locked };
       const name = it.type === 'figure' ? FIG.CHARACTERS[it.char].name : it.type === 'object' ? OBJ.OBJECTS[it.obj].name : BAL.STYLES[it.style].name;
       h += `<div class="tb-sel">${icon(isBal ? 'balloon' : it.type)}<span>${esc(name)}</span></div>`;
+      if (it.type === 'figure') h += tbGroup('Look', pickBtn('pose', it) + pickBtn('expr', it));
       h += tbGroup('Edit', ibtn('duplicate', 'duplicate', 'Duplicate', { key: 'Ctrl+D' }) + ibtn('delete', 'trash', 'Delete', { key: 'Del', cls: 'danger' }));
       h += tbGroup('Transform', (isBal
         ? ibtn('mirrorTail', 'mirrorTail', 'Mirror the tail', dis)
@@ -798,6 +800,79 @@
     commit(); renderCanvas(); renderInspector();
   });
   tb.addEventListener('keydown', e => e.stopPropagation());
+
+  // ------------------------------------------------------------------ pose / face picker (popover)
+  /** a compact button that shows the current pose or face and opens the picker */
+  function pickBtn(kind, it) {
+    const isPose = kind === 'pose';
+    const label = isPose ? FIG.POSES[it.pose].name : FIG.EXPRESSIONS[it.expr];
+    const art = isPose ? figThumb(it.char, it.pose, it.expr, { handL: it.handL, handR: it.handR }) : faceThumb(it, it.expr);
+    const open = !picker.hidden && pickerKind === kind;
+    return `<button class="pick${open ? ' open' : ''}" data-pick="${kind}" data-tip="${isPose ? 'Change pose' : 'Change face'}" data-key="${isPose ? 'P' : 'F'}" aria-haspopup="dialog" aria-expanded="${open}" aria-label="${isPose ? 'Pose' : 'Face'}: ${esc(label)}"><span class="pick-art">${art}</span><span class="pick-lbl">${esc(label)}</span><svg class="ico" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+  }
+  function setPose(it, pid) {
+    it.pose = pid;
+    const P = FIG.POSES[pid];
+    it.fx = (it.fx || []).filter(x => x !== 'speed');
+    if (P.fxAuto) P.fxAuto.forEach(x => { if (!it.fx.includes(x)) it.fx.push(x); });
+  }
+  const picker = $('#picker');
+  let pickerKind = null, pickerFor = null;
+  const resetPicker = () => { picker.hidden = true; pickerKind = pickerFor = null; };
+  function openPicker(kind, anchor) {
+    const it = selItem(); if (!it || it.type !== 'figure') return;
+    if (!picker.hidden && pickerKind === kind && pickerFor === it.id) { closePicker(); return; }
+    pickerKind = kind; pickerFor = it.id;
+    const isPose = kind === 'pose', cur = isPose ? it.pose : it.expr;
+    const entries = isPose ? Object.entries(FIG.POSES).map(([k, v]) => [k, v.name]) : Object.entries(FIG.EXPRESSIONS);
+    picker.className = 'picker ' + (isPose ? 'poses' : 'faces');
+    picker.setAttribute('aria-label', isPose ? 'Choose a pose' : 'Choose a face');
+    picker.innerHTML = `<div class="picker-head"><b>${isPose ? 'Pose' : 'Face'}</b><span class="hint">${esc(FIG.CHARACTERS[it.char].name)}</span></div>
+      <div class="picker-grid">${entries.map(([k, name]) => `<button class="thumb${k === cur ? ' sel' : ''}" aria-pressed="${k === cur}" data-pickv="${k}" title="${esc(name)}">${isPose ? figThumb(it.char, k, it.expr, { handL: it.handL, handR: it.handR }) : faceThumb(it, k)}<span>${esc(name)}</span></button>`).join('')}</div>`;
+    picker.hidden = false;
+    // place it under the button, kept inside the window
+    const r = anchor.getBoundingClientRect(), w = picker.offsetWidth, h = picker.offsetHeight;
+    let x = r.left, y = r.bottom + 6;
+    if (x + w > innerWidth - 8) x = Math.max(8, r.right - w);
+    if (y + h > innerHeight - 8) y = Math.max(8, Math.min(r.top - h - 6, innerHeight - h - 8));
+    picker.style.left = x + 'px'; picker.style.top = y + 'px';
+    renderToolbar(); markPickButtons();
+    const sel = picker.querySelector('.sel') || picker.querySelector('.thumb');
+    if (sel) { sel.scrollIntoView({ block: 'nearest' }); sel.focus({ preventScroll: true }); }
+  }
+  /** show which pick button the open picker belongs to (toolbar and inspector) */
+  function markPickButtons() { $$('[data-pick]').forEach(b => { const o = !picker.hidden && b.dataset.pick === pickerKind; b.classList.toggle('open', o); b.setAttribute('aria-expanded', o); }); }
+  function closePicker() {
+    if (picker.hidden) return;
+    const kind = pickerKind; resetPicker(); markPickButtons();
+    const b = $(`#toolbar [data-pick="${kind}"]`); if (b) b.focus({ preventScroll: true });
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-pick]');
+    if (b) { openPicker(b.dataset.pick, b); return; }
+    const v = e.target.closest('[data-pickv]');
+    if (v) {
+      const it = selItem(), kind = pickerKind;
+      if (!it || it.id !== pickerFor) { closePicker(); return; }
+      if (kind === 'pose') setPose(it, v.dataset.pickv); else it.expr = v.dataset.pickv;
+      resetPicker(); commit(); renderCanvas(); renderInspector();
+      const tbb = $(`#toolbar [data-pick="${kind}"]`); if (tbb) tbb.focus({ preventScroll: true });
+    }
+  });
+  // close when clicking anywhere else
+  document.addEventListener('mousedown', e => { if (!picker.hidden && !picker.contains(e.target) && !e.target.closest('[data-pick]')) closePicker(); }, true);
+  picker.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Escape') { e.preventDefault(); closePicker(); return; }
+    // arrow keys move through the grid
+    const btns = $$('#picker .thumb'), i = btns.indexOf(document.activeElement);
+    if (i < 0 || !e.key.startsWith('Arrow')) return;
+    e.preventDefault();
+    const cols = getComputedStyle($('#picker .picker-grid')).gridTemplateColumns.split(' ').length;
+    const d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[e.key];
+    const n = btns[clamp(i + d, 0, btns.length - 1)]; n.focus(); n.scrollIntoView({ block: 'nearest' });
+  });
+  window.addEventListener('resize', () => { if (!picker.hidden) { resetPicker(); markPickButtons(); } });
 
   // ------------------------------------------------------------------ inspector (right)
   const opt = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${esc(k)}" ${k === cur ? 'selected' : ''}>${esc(typeof v === 'string' ? v : v.name)}</option>`).join('');
@@ -853,8 +928,7 @@
     let h = '';
     if (it.type === 'figure') {
       h += `<label class="row"><span class="lbl">Character</span><select data-k="char" data-rebuild>${opt(FIG.CHARACTERS, it.char)}</select></label>`;
-      h += `<div class="lib-section">Pose</div><div class="grid small">${Object.entries(FIG.POSES).map(([pid, p]) => `<div class="thumb ${pid === it.pose ? 'sel' : ''}" data-setk="pose" data-v="${pid}" title="${p.name}">${figThumb(it.char, pid, it.expr, { handL: it.handL, handR: it.handR })}</div>`).join('')}</div>`;
-      h += `<div class="lib-section">Face</div><div class="grid small">${Object.entries(FIG.EXPRESSIONS).map(([k, v]) => `<div class="thumb ${k === it.expr ? 'sel' : ''}" data-setk="expr" data-v="${k}" title="${v}">${faceThumb(it, k)}</div>`).join('')}</div>`;
+      h += `<div class="row"><span class="lbl">Pose</span>${pickBtn('pose', it)}</div><div class="row"><span class="lbl">Face</span>${pickBtn('expr', it)}</div>`;
       h += `<div class="lib-section">Effects</div><div class="fx-chips">${Object.entries(FIG.FX).map(([k, v]) => `<button data-fx="${k}" class="${(it.fx || []).includes(k) ? 'on' : ''}">${esc(v)}</button>`).join('')}</div>`;
       const ch = FIG.CHARACTERS[it.char];
       h += `<label class="row"><span class="lbl">Right hand</span><select data-k="handR">${opt(FIG.HAND_ITEMS, it.handR !== undefined ? it.handR : (ch.handR || 'none'))}</select></label>`;
@@ -984,7 +1058,7 @@
   insp.addEventListener('click', e => {
     const it = selItem();
     const s = e.target.closest('[data-setk]');
-    if (s && it) { it[s.dataset.setk] = s.dataset.v; if (s.dataset.setk === 'pose') { const P = FIG.POSES[s.dataset.v]; it.fx = (it.fx || []).filter(x => x !== 'speed'); if (P.fxAuto) P.fxAuto.forEach(x => { if (!it.fx.includes(x)) it.fx.push(x); }); } commit(); renderCanvas(); renderInspector(); return; }
+    if (s && it) { if (s.dataset.setk === 'pose') setPose(it, s.dataset.v); else it[s.dataset.setk] = s.dataset.v; commit(); renderCanvas(); renderInspector(); return; }
     const t = e.target.closest('[data-toggle]');
     if (t && it) { it[t.dataset.toggle] = !it[t.dataset.toggle]; if (it.autoFit !== false) refit(it); commit(); renderCanvas(); renderInspector(); return; }
     const fx = e.target.closest('[data-fx]');
@@ -1322,6 +1396,7 @@
     }
     else if (e.key.toLowerCase() === 'h') actions.flipX();
     else if (e.key.toLowerCase() === 'v') actions.flipY();
+    else if ((key === 'p' || key === 'f') && !ctrl && !e.altKey && it.type === 'figure') { e.preventDefault(); const k = key === 'p' ? 'pose' : 'expr', b = $(`#toolbar [data-pick="${k}"]`); if (b) openPicker(k, b); }
     else if (e.key === '+' || e.key === '=') resizeSel(1.1);
     else if (e.key === '-' || e.key === '_') resizeSel(1 / 1.1);
     else if (e.key === ']') layer('forward');
