@@ -134,7 +134,7 @@ button.with-icon { display: inline-flex; align-items: center; gap: 6px; padding:
 .lib-row select { flex: 1; }
 
 /* ---------- stage */
-.stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; container: stage / inline-size; }
 .stage-scroll { flex: 1; overflow: auto; position: relative; }
 .canvas-wrap { position: relative; padding: 28px; width: max-content; min-width: 100%; display: flex; justify-content: center; }
 #page { background: #fff; box-shadow: 0 4px 30px rgba(0,0,0,.6); touch-action: none; user-select: none; display: block; }
@@ -149,7 +149,7 @@ button.with-icon { display: inline-flex; align-items: center; gap: 6px; padding:
 .pagebar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--line); }
 .zoom-label { min-width: 52px; height: 30px; padding: 0 6px; border: 0; background: transparent; color: var(--muted); font-variant-numeric: tabular-nums; border-radius: 7px; }
 .zoom-label:hover { color: var(--ink); background: var(--hover); }
-.page-tabs { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+.page-tabs { display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; }
 .page-tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 /* ---------- inspector */
@@ -224,9 +224,6 @@ textarea.text-edit { width: 100%; min-height: 76px; resize: vertical; margin-bot
   .library { order: 2; max-height: 60vh; border-right: 0; border-top: 1px solid var(--line); }
   .inspector { order: 3; overflow: visible; border-left: 0; border-top: 1px solid var(--line); }
   .canvas-wrap { padding: 12px; }
-  .pagebar { flex-wrap: wrap; }
-  .zoom-group { margin-left: auto; }
-  .page-tabs { flex-basis: 100%; }
 }
 
 /* ---------- additions: unsaved marker, page thumbnails, layout gallery, projects, help */
@@ -316,6 +313,17 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
 .tb-menu-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; padding: 0 2px; }
 .tb-menu .tg { border-left: 0; padding: 0; flex-wrap: wrap; }
 
+/* ---------- page bar in a narrow canvas column: thumbnails on their own row, buttons below */
+@container stage (max-width: 520px) {
+  .pagebar { flex-wrap: wrap; row-gap: 4px; padding: 6px 8px; }
+  .page-tabs { flex-basis: 100%; }
+  .pagebar .tb-group { flex-shrink: 0; }
+  .pagebar .tb-group + .tb-group { margin-left: auto; }
+  .pagebar .ibtn { width: 32px; height: 32px; }
+  .pagebar .zoom-label { min-width: 44px; }
+  .pagebar .zoom-fit { display: none; } /* clicking the zoom percentage fits the page too */
+}
+
 </style>
 </head>
 <body>
@@ -377,7 +385,7 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
         <button class="ibtn" data-act="zoomOut" data-icon="zoomOut" data-tip="Zoom out" data-key="Ctrl+wheel"></button>
         <button id="zoomLabel" class="zoom-label" data-act="zoomFit" data-tip="Fit page to window">100%</button>
         <button class="ibtn" data-act="zoomIn" data-icon="zoomIn" data-tip="Zoom in" data-key="Ctrl+wheel"></button>
-        <button class="ibtn" data-act="zoomFit" data-icon="fit" data-tip="Fit page to window"></button>
+        <button class="ibtn zoom-fit" data-act="zoomFit" data-icon="fit" data-tip="Fit page to window"></button>
       </div>
     </div>
   </section>
