@@ -2476,9 +2476,9 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   // ------------------------------------------------------------------ demo cartoon
   function demoDoc() {
     doc = newDoc();
-    doc.title = 'The Dragon Problem';
+    doc.title = 'Just One Drop';
     const pg = page();
-    pg.layout.title = 'The Dragon Problem';
+    pg.layout.title = 'Just One Drop';
     const PM = computePanels(pg);
     const put = (key, spec, fx, fy, extra = {}) => {
       const P = PM.map[key];
@@ -2492,42 +2492,44 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     };
     // the scenes' ground sits at 250/300 of their height (bottom-anchored, so the same in any panel)
     const GY = 0.84;
-    pg.panels['0-0'] = { scene: 'throneroom', sceneOpacity: 0.55 };
-    pg.panels['0-1'] = { scene: 'forest', sceneOpacity: 0.6 };
-    pg.panels['1-0'] = { scene: 'mountains', sceneOpacity: 0.6 };
-    pg.panels['1-1'] = { scene: 'room', sceneOpacity: 0.6 };
-    // panel 1
+    ['0-0', '0-1', '1-0', '1-1'].forEach(k => { pg.panels[k] = { scene: 'throneroom', sceneOpacity: 0.55 }; });
     const aim = (b, fig, dx = 0) => { // point a balloon's tail at a figure's head
       const [hx, hy] = FIG.headAt(fig.char, fig.pose);
       const sx = fig.w / FIG.NW, sy = fig.h / FIG.NH;
       const tx = fig.x + (fig.flipX ? -1 : 1) * (hx - FIG.NW / 2) * sx + dx, ty = fig.y + (hy - FIG.NH / 2) * sy - 26 * sy;
       b.tx = tx - b.x; b.ty = ty - b.y;
     };
-    // panel 1
-    const king = put('0-0', { kind: 'figure', char: 'king', pose: 'point', expr: 'angry' }, 0.72, 0, { gy: GY, flipX: true });
-    put('0-0', { kind: 'figure', char: 'knight', pose: 'kneel', expr: 'happy' }, 0.27, 0, { gy: GY });
-    const b1 = put('0-0', { kind: 'balloon', style: 'speech' }, 0.52, 0.17, { text: 'Sir Kevin! Slay the *dragon* by Friday!' });
-    aim(b1, king);
-    // panel 2
-    const k2 = put('0-1', { kind: 'figure', char: 'knight', pose: 'walk', expr: 'neutral' }, 0.42, 0, { gy: GY, handR: 'spear' });
-    const b2 = put('0-1', { kind: 'balloon', style: 'thought' }, 0.55, 0.17, { text: 'I hope it is a small one...' });
-    aim(b2, k2);
-    // panel 3
-    put('1-0', { kind: 'object', obj: 'dragon' }, 0.68, 0, { gy: GY, flipX: true, k: 1.1 });
-    put('1-0', { kind: 'figure', char: 'knight', pose: 'panic', expr: 'scared' }, 0.2, 0, { gy: GY, flipX: true, fx: ['sweat'] });
-    put('1-0', { kind: 'object', obj: 'speed' }, 0.42, 0.6, { k: 0.9 });
-    put('1-0', { kind: 'balloon', style: 'sfx', text: 'ROAR!' }, 0.68, 0.14, { rot: 8 });
-    // panel 4 – seat the knight on the chair
+    // panel 1 – the problem
+    const king1 = put('0-0', { kind: 'figure', char: 'king', pose: 'sad', expr: 'sad' }, 0.28, 0, { gy: GY });
+    const wiz1 = put('0-0', { kind: 'figure', char: 'wizard', pose: 'point', expr: 'grin' }, 0.76, 0, { gy: GY, flipX: true });
+    put('0-0', { kind: 'object', obj: 'potion' }, 0.6, 0, { gy: GY, k: 0.8 });
+    const b1 = put('0-0', { kind: 'balloon', style: 'speech' }, 0.3, 0.14, { text: 'I feel so *old*...' });
+    aim(b1, king1);
+    const b1b = put('0-0', { kind: 'balloon', style: 'speech' }, 0.7, 0.3, { text: 'Youth potion, Sire! Just *one drop*.' });
+    aim(b1b, wiz1);
+    // panel 2 – the king does not do drops
+    put('0-1', { kind: 'figure', char: 'king', pose: 'cheer', expr: 'laugh' }, 0.3, 0, { gy: GY, handR: 'cup', handL: 'none' });
+    put('0-1', { kind: 'figure', char: 'wizard', pose: 'shock', expr: 'scared' }, 0.78, 0, { gy: GY, flipX: true, fx: ['sweat'] });
+    put('0-1', { kind: 'balloon', style: 'sfx', text: 'GLUG GLUG GLUG' }, 0.5, 0.15, { rot: -6 });
+    // panel 3 – poof
+    put('1-0', { kind: 'object', obj: 'puff' }, 0.32, 0, { gy: GY + 0.02, k: 2.6 });
+    put('1-0', { kind: 'object', obj: 'sparkles' }, 0.22, 0.38, { k: 1.1 });
+    put('1-0', { kind: 'object', obj: 'sparkles' }, 0.58, 0.3, { k: 0.8 });
+    put('1-0', { kind: 'figure', char: 'wizard', pose: 'panic', expr: 'scared' }, 0.7, 0, { gy: GY, flipX: true, fx: ['sweat', 'shock'] });
+    put('1-0', { kind: 'balloon', style: 'sfx', text: 'POOF!' }, 0.4, 0.15, { rot: 8 });
+    // panel 4 – a very young king on the throne
     const P4 = PM.map['1-1'];
-    const chair = put('1-1', { kind: 'object', obj: 'chair' }, 0.4, 0, { gy: GY, k: 1.1 });
-    const k4 = put('1-1', { kind: 'figure', char: 'knight', pose: 'sit', expr: 'smirk' }, 0.4, 0, { handR: 'cup', handL: 'none' });
-    const cs = chair.w / OBJ.OBJECTS.chair.w, fs = k4.w / FIG.NW;
-    const seat = [chair.x - chair.w / 2 + 18 * cs, chair.y - chair.h / 2 + 61 * cs];
-    const [hx, hy] = FIG.hipAt('knight', 'sit');
-    k4.x = seat[0] - (hx - FIG.NW / 2) * fs; k4.y = seat[1] - (hy - FIG.NH / 2) * fs - 3;
-    put('1-1', { kind: 'balloon', style: 'caption', text: 'Meanwhile, back home...' }, 0.3, 0.08, { align: 'left' });
-    const b4 = put('1-1', { kind: 'balloon', style: 'speech' }, 0.62, 0.3, { text: 'Dragons are *overrated*.' });
-    aim(b4, k4);
+    const throne = put('1-1', { kind: 'object', obj: 'throne' }, 0.46, 0, { gy: GY, k: 1.3 });
+    const baby = put('1-1', { kind: 'figure', char: 'baby', pose: 'sit', expr: 'angry' }, 0.46, 0, { handR: 'scepter', handL: 'none', fx: ['anger'] });
+    const ts = throne.w / OBJ.OBJECTS.throne.w, fs = baby.w / FIG.NW;
+    const seat = [throne.x - throne.w / 2 + 40 * ts, throne.y - throne.h / 2 + 118 * ts];
+    const [hx, hy] = FIG.hipAt('baby', 'sit');
+    baby.x = seat[0] - (hx - FIG.NW / 2) * fs; baby.y = seat[1] - (hy - FIG.NH / 2) * fs - 2;
+    const wiz4 = put('1-1', { kind: 'figure', char: 'wizard', pose: 'shrug', expr: 'grin' }, 0.8, 0, { gy: GY, flipX: true, fx: ['sweat'] });
+    const b4a = put('1-1', { kind: 'balloon', style: 'shout' }, 0.26, 0.14, { text: 'FIX. THIS.' });
+    aim(b4a, baby);
+    const b4b = put('1-1', { kind: 'balloon', style: 'speech' }, 0.7, 0.3, { text: 'Well... technically, you *are* young again.' });
+    aim(b4b, wiz4);
     void P4;
     return doc;
   }
