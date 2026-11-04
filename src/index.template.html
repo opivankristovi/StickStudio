@@ -52,7 +52,9 @@
 <div id="toolbar" class="toolbar" role="toolbar" aria-label="Edit the selection"></div>
 
 <main class="main">
-  <aside class="library">
+  <aside class="library" id="library" aria-label="Library">
+    <!-- phones: the library is a sheet that slides up from the bottom (opened with the + button on the canvas) -->
+    <div class="sheet-head"><span class="sheet-grip" aria-hidden="true"></span><b>Add to the page</b><button class="ibtn" data-act="closeLib" data-icon="close" data-tip="Close" aria-label="Close the library"></button></div>
     <nav class="lib-tabs" role="tablist" aria-label="Library">
       <button data-tab="characters" data-tab-icon="figure" class="active" role="tab" aria-selected="true" title="Characters"><span>Characters</span></button>
       <button data-tab="objects" data-tab-icon="object" role="tab" aria-selected="false" title="Objects"><span>Objects</span></button>
@@ -63,7 +65,10 @@
     <div class="lib-hint"><span class="mouse-only">Drag onto a panel, or click to add to the selected panel.</span><span class="touch-only">Tap a panel on the page, then tap something here to add it.</span></div>
   </aside>
 
+  <div id="libBackdrop" class="lib-backdrop" hidden></div>
+
   <section class="stage">
+    <button id="libFab" class="lib-fab" data-act="openLib" data-icon="plus" data-tip="Add characters, objects, scenes or balloons" aria-label="Add characters, objects, scenes or balloons" aria-controls="library" aria-expanded="false"></button>
     <div id="stageScroll" class="stage-scroll">
       <div id="canvasWrap" class="canvas-wrap">
         <svg id="page" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -138,10 +143,10 @@
   <div class="modal-card wide">
     <h2>Welcome to StickStudio 👋</h2>
     <ol class="help-steps">
-      <li><b>Pick a layout</b> in <i>Page layout</i> <span class="wide-only">on the right</span><span class="narrow-only">below the library</span>. Use a preset, or set rows and panels per row. <span class="mouse-only">Click</span><span class="touch-only">Tap</span> a panel to split or merge it, or to change its width.</li>
-      <li><b>Add a scene</b> from the <i>Scenes</i> tab: <span class="mouse-only">drag it onto a panel, or click a panel and then the scene.</span><span class="touch-only">tap a panel, then tap the scene.</span></li>
+      <li><b>Pick a layout</b> in <i>Page layout</i> <span class="wide-only">on the right</span><span class="narrow-only">below the page</span>. Use a preset, or set rows and panels per row. <span class="mouse-only">Click</span><span class="touch-only">Tap</span> a panel to split or merge it, or to change its width.</li>
+      <li><b>Add a scene</b> from the <i>Scenes</i> tab<span class="narrow-only"> (the <b>+</b> button opens the library)</span>: <span class="mouse-only">drag it onto a panel, or click a panel and then the scene.</span><span class="touch-only">tap a panel, then tap the scene.</span></li>
       <li><b>Add characters, objects and balloons</b> the same way. <span class="mouse-only">Double-click</span><span class="touch-only">Double-tap</span> a balloon to type.</li>
-      <li><b>Select something</b> and use the <b>toolbar at the top</b> to change a character's pose and face, or to flip, rotate, resize, align it in its panel or change its layer. Colours and other settings are <span class="wide-only">on the right</span><span class="narrow-only">below the library</span>.</li>
+      <li><b>Select something</b> and use the <b>toolbar at the top</b> to change a character's pose and face, or to flip, rotate, resize, align it in its panel or change its layer. Colours and other settings are <span class="wide-only">on the right</span><span class="narrow-only">below the page</span>.</li>
       <li><b>Add pages</b> with the buttons under the page. <span class="mouse-only">Drag the page thumbnails to put them in a different order.</span><span class="touch-only">Use the ◀ ▶ buttons to move a page.</span></li>
       <li><b>Export</b> (top right) when you're done. Your work saves automatically, and <i>Projects</i><span class="menu-only"> in the ⋯ menu</span> lists all your cartoons.</li>
     </ol>

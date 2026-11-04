@@ -635,6 +635,23 @@
     const ex = $('#libExpr'); if (ex) ex.onchange = () => { state.libExpr = ex.value; renderLibrary(); };
   }
 
+  // ---- phones: the library is a bottom sheet
+  const libIsSheet = () => matchMedia('(max-width: 860px)').matches;
+  const libFab = $('#libFab'), libBackdrop = $('#libBackdrop');
+  function setLibOpen(open) {
+    open = !!open && libIsSheet();
+    document.body.classList.toggle('lib-open', open);
+    libBackdrop.hidden = !open; libFab.setAttribute('aria-expanded', open);
+    if (open) { const a = $('.lib-tabs .active'); if (a) a.focus({ preventScroll: true }); }
+  }
+  libBackdrop.addEventListener('click', () => setLibOpen(false));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('lib-open')) { e.preventDefault(); e.stopImmediatePropagation(); setLibOpen(false); libFab.focus(); } }, true);
+  window.addEventListener('resize', () => { if (!libIsSheet()) setLibOpen(false); });
+  // keep the + button just above the page bar, whose height changes with the screen
+  const placeFab = () => { libFab.style.bottom = ($('.pagebar').offsetHeight + 14) + 'px'; };
+  if (window.ResizeObserver) new ResizeObserver(placeFab).observe($('.pagebar')); else window.addEventListener('resize', placeFab);
+  placeFab();
+
   $('.lib-tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.tab = b.dataset.tab; renderLibrary(); });
   $('#libBody').addEventListener('click', e => {
     const dm = e.target.closest('[data-delmine]');
@@ -647,7 +664,7 @@
     const ch = e.target.closest('[data-libchar]');
     if (ch) { state.libChar = ch.dataset.libchar; renderLibrary(); return; }
     const t = e.target.closest('.thumb[data-spec]');
-    if (t) addFromSpec(JSON.parse(t.dataset.spec));
+    if (t) { addFromSpec(JSON.parse(t.dataset.spec)); if (libIsSheet()) setLibOpen(false); } // show the result straight away
   });
   $('#libBody').addEventListener('dragstart', e => {
     const t = e.target.closest('.thumb[data-spec]'); if (!t) return;
@@ -721,6 +738,8 @@
     balloon: '<path d="M12 4c4.7 0 8.5 2.9 8.5 6.5S16.7 17 12 17c-.9 0-1.8-.1-2.6-.3L5 19.5l1.2-3.9C4.5 14.4 3.5 12.6 3.5 10.5 3.5 6.9 7.3 4 12 4z"/>',
     panel: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v9"/>',
     scene: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
     more: '<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>',
   };
   const icon = (name, size = 18) => `<svg class="ico" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
@@ -1336,6 +1355,7 @@
     },
     projects() { if (commitTimer) commit(); renderProjects(); openModal('#projectsModal'); },
     help() { openModal('#helpModal'); },
+    openLib() { setLibOpen(true); }, closeLib() { setLibOpen(false); },
     open() { $('#fileOpen').click(); },
     save() {
       if (commitTimer) commit();
