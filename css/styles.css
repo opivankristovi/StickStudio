@@ -209,7 +209,7 @@ textarea.text-edit { width: 100%; min-height: 76px; resize: vertical; margin-bot
   html, body { overflow: auto; height: auto; }
   .tb-hint { display: none; }
   .main { display: flex; flex-direction: column; height: auto; }
-  .stage { order: 1; height: 72vh; min-height: 360px; }
+  .stage { order: 1; height: calc(100vh - var(--top-h) - var(--tool-h)); height: calc(100svh - var(--top-h) - var(--tool-h)); min-height: 260px; }
   .library { order: 2; max-height: 60vh; border-right: 0; border-top: 1px solid var(--line); }
   .inspector { order: 3; overflow: visible; border-left: 0; border-top: 1px solid var(--line); }
   .canvas-wrap { padding: 12px; }
@@ -311,6 +311,7 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   .pagebar .ibtn { width: 32px; height: 32px; }
   .pagebar .zoom-label { min-width: 44px; }
   .pagebar .zoom-fit { display: none; } /* clicking the zoom percentage fits the page too */
+  .canvas-wrap { padding: 12px; }        /* a narrow canvas column can't spare 28 px on each side */
 }
 
 /* ---------- app bar on narrow screens: always one row */
@@ -341,3 +342,9 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   .title-input { padding: 6px 6px; font-size: 13px; }
 }
 @media (max-width: 360px) { .brand { display: none; } } /* the logo is decoration; the title needs the room */
+
+/* ---------- short screens (landscape phones, small laptops): smaller page thumbnails leave more room for the canvas */
+@media (max-height: 560px) {
+  .page-thumb svg { height: 38px; }
+  .pagebar { padding-top: 4px; padding-bottom: 4px; }
+}
