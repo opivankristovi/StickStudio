@@ -720,6 +720,31 @@
   $$('[data-icon]').forEach(b => { b.innerHTML = icon(b.dataset.icon); if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', b.dataset.tip || ''); });
   $$('[data-icon-left]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.iconLeft, 16)); });
   $$('[data-tab-icon]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.tabIcon, 18)); });
+  $$('[data-mi]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.mi, 16)); });
+
+  // ⋯ menu in the app bar (only shown on narrow screens, see .app-more in the CSS)
+  const appMenu = $('#appMenu'), appMoreBtn = $('[data-appmore]');
+  function toggleAppMenu(show) {
+    show = show === undefined ? appMenu.hidden : show;
+    if (show === !appMenu.hidden) return;
+    appMenu.hidden = !show; appMoreBtn.setAttribute('aria-expanded', show); appMoreBtn.classList.toggle('on', show);
+    if (show) {
+      const r = appMoreBtn.getBoundingClientRect();
+      appMenu.style.top = (r.bottom + 6) + 'px';
+      appMenu.style.left = clamp(r.right - appMenu.offsetWidth, 8, innerWidth - appMenu.offsetWidth - 8) + 'px';
+      appMenu.querySelector('button').focus({ preventScroll: true });
+    }
+  }
+  appMoreBtn.addEventListener('click', () => toggleAppMenu());
+  appMenu.addEventListener('click', e => { if (e.target.closest('[data-act]')) toggleAppMenu(false); });
+  appMenu.addEventListener('keydown', e => {
+    e.stopPropagation();
+    const items = $$('#appMenu button'), i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); toggleAppMenu(false); appMoreBtn.focus(); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus(); }
+  });
+  document.addEventListener('mousedown', e => { if (!appMenu.hidden && !e.target.closest('.app-more')) toggleAppMenu(false); }, true);
+  window.addEventListener('resize', () => toggleAppMenu(false));
   // one shared tooltip that shows the label, an optional sub-line and the keyboard shortcut
   const tip = $('#tip'); let tipTimer = null, tipFor = null;
   function hideTip() { clearTimeout(tipTimer); tipFor = null; tip.hidden = true; }
