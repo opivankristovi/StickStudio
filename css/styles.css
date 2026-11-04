@@ -372,3 +372,10 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   .shortcut-grid { grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; }
   .help-steps { padding-left: 18px; }
 }
+
+/* ---------- text that depends on the screen: layout (wide / stacked, ⋯ menu) and input (mouse / touch) */
+.narrow-only, .touch-only, .menu-only { display: none; }
+@media (max-width: 860px) { .wide-only { display: none; } .narrow-only { display: inline; } }
+@media (max-width: 760px) { .menu-only { display: inline; } }
+@media (hover: none) and (pointer: coarse) { .mouse-only { display: none; } .touch-only { display: inline; } }
+@media (hover: none) and (pointer: coarse) { #helpModal .help-h, #helpModal .shortcut-grid { display: none; } } /* no keyboard on a phone */
