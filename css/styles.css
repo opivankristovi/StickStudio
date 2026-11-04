@@ -136,7 +136,7 @@ button.with-icon { display: inline-flex; align-items: center; gap: 6px; padding:
 .stage-scroll.drop-hover #page { outline: 3px dashed var(--accent); outline-offset: 4px; }
 .inline-editor {
   position: absolute; resize: none; border: 2px solid var(--accent); border-radius: 6px;
-  background: rgba(255,255,255,.96); color: #1d1d1d; padding: 4px; outline: none; line-height: 1.2; overflow: hidden; z-index: 5;
+  background: rgba(255,255,255,.97); color: #1d1d1d; padding: 6px; outline: none; line-height: 1.2; overflow: auto; z-index: 5; box-shadow: 0 6px 24px rgba(0,0,0,.35);
 }
 .pagebar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--line); }
 .zoom-label { min-width: 52px; height: 30px; padding: 0 6px; border: 0; background: transparent; color: var(--muted); font-variant-numeric: tabular-nums; border-radius: 7px; }
