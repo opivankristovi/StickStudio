@@ -577,7 +577,7 @@
   }
 
   function renderLibrary() {
-    $$('.lib-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
+    $$('.lib-tabs button').forEach(b => { const on = b.dataset.tab === state.tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
     let h = '';
     if (state.tab === 'characters') {
       const mine = readJSON(PRESET_KEY, []);
@@ -707,6 +707,7 @@
     object: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
     balloon: '<path d="M12 4c4.7 0 8.5 2.9 8.5 6.5S16.7 17 12 17c-.9 0-1.8-.1-2.6-.3L5 19.5l1.2-3.9C4.5 14.4 3.5 12.6 3.5 10.5 3.5 6.9 7.3 4 12 4z"/>',
     panel: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v9"/>',
+    scene: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/>',
     more: '<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>',
   };
   const icon = (name, size = 18) => `<svg class="ico" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
@@ -718,6 +719,7 @@
   // static buttons in the page: fill in their icons once
   $$('[data-icon]').forEach(b => { b.innerHTML = icon(b.dataset.icon); if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', b.dataset.tip || ''); });
   $$('[data-icon-left]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.iconLeft, 16)); });
+  $$('[data-tab-icon]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.tabIcon, 18)); });
   // one shared tooltip that shows the label, an optional sub-line and the keyboard shortcut
   const tip = $('#tip'); let tipTimer = null, tipFor = null;
   function hideTip() { clearTimeout(tipTimer); tipFor = null; tip.hidden = true; }
