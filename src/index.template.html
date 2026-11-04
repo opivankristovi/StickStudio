@@ -10,7 +10,7 @@
 <body>
 <header class="topbar">
   <div class="brand"><svg viewBox="0 0 40 40" width="26" height="26"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="20" cy="9" r="6" fill="#fff"/><path d="M20,15 V27 M20,27 L13,37 M20,27 L27,37 M20,19 L11,14 M20,19 L30,12"/></g></svg><span>StickStudio</span></div>
-  <div class="tb-group">
+  <div class="tb-group app-file">
     <button class="ibtn" data-act="new" data-icon="new" data-tip="New cartoon" data-sub="The current one stays in Projects"></button>
     <button class="ibtn" data-act="projects" data-icon="projects" data-tip="Projects" data-sub="Your cartoons stored in this browser"></button>
     <button class="ibtn" data-act="open" data-icon="open" data-tip="Open project file" data-key="Ctrl+O"></button>
@@ -26,10 +26,27 @@
     <span id="dirtyMark" class="dirty-mark" title="Changes not yet saved to a file (your work is still kept in the browser)" hidden>●</span>
   </div>
   <div class="tb-group tb-right">
-    <button class="ibtn" data-act="help" data-icon="help" data-tip="Help &amp; shortcuts" data-key="F1"></button>
-    <button class="ibtn" data-act="print" data-icon="print" data-tip="Print" data-key="Ctrl+P"></button>
-    <button class="ibtn" data-act="png" data-icon="image" data-tip="Export images" data-sub="PNG, ZIP or one long strip"></button>
-    <button data-act="pdf" class="primary with-icon" data-icon-left="export" data-tip="Export the finished cartoon as PDF" data-key="Ctrl+E">Export</button>
+    <div class="app-extra">
+      <button class="ibtn" data-act="help" data-icon="help" data-tip="Help &amp; shortcuts" data-key="F1"></button>
+      <button class="ibtn" data-act="print" data-icon="print" data-tip="Print" data-key="Ctrl+P"></button>
+      <button class="ibtn" data-act="png" data-icon="image" data-tip="Export images" data-sub="PNG, ZIP or one long strip"></button>
+    </div>
+    <!-- narrow screens: the file buttons, Help, Print and Images move into this menu -->
+    <div class="app-more">
+      <button class="ibtn" data-appmore data-icon="more" data-tip="More" aria-haspopup="true" aria-expanded="false" aria-controls="appMenu"></button>
+      <div id="appMenu" class="app-menu" role="menu" aria-label="More" hidden>
+        <button role="menuitem" data-act="new" data-mi="new">New cartoon</button>
+        <button role="menuitem" data-act="projects" data-mi="projects">Projects</button>
+        <button role="menuitem" data-act="open" data-mi="open">Open file…<kbd>Ctrl+O</kbd></button>
+        <button role="menuitem" data-act="save" data-mi="save">Save file<kbd>Ctrl+S</kbd></button>
+        <hr>
+        <button role="menuitem" data-act="print" data-mi="print">Print<kbd>Ctrl+P</kbd></button>
+        <button role="menuitem" data-act="png" data-mi="image">Export images</button>
+        <hr>
+        <button role="menuitem" data-act="help" data-mi="help">Help &amp; shortcuts<kbd>F1</kbd></button>
+      </div>
+    </div>
+    <button data-act="pdf" class="primary with-icon" data-icon-left="export" data-tip="Export the finished cartoon as PDF" data-key="Ctrl+E" aria-label="Export"><span class="btn-txt">Export</span></button>
   </div>
 </header>
 <div id="toolbar" class="toolbar" role="toolbar" aria-label="Edit the selection"></div>

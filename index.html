@@ -215,9 +215,6 @@ textarea.text-edit { width: 100%; min-height: 76px; resize: vertical; margin-bot
 /* narrow windows: stack canvas, library and inspector vertically */
 @media (max-width: 860px) {
   html, body { overflow: auto; height: auto; }
-  .topbar { height: auto; flex-wrap: wrap; padding: 8px 12px; row-gap: 6px; }
-  .title-wrap { order: 5; flex-basis: 100%; }
-  .tb-right { margin-left: auto; }
   .tb-hint { display: none; }
   .main { display: flex; flex-direction: column; height: auto; }
   .stage { order: 1; height: 72vh; min-height: 360px; }
@@ -324,12 +321,41 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   .pagebar .zoom-fit { display: none; } /* clicking the zoom percentage fits the page too */
 }
 
+/* ---------- app bar on narrow screens: always one row */
+.app-extra { display: flex; align-items: center; gap: 2px; }
+.app-more { display: none; }
+.title-input { min-width: 0; text-overflow: ellipsis; }
+.app-menu {
+  position: fixed; z-index: 66; display: flex; flex-direction: column; min-width: 220px; padding: 6px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.5);
+}
+.app-menu[hidden] { display: none; }
+.app-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; background: transparent; border-radius: 8px; text-align: left; }
+.app-menu button:hover, .app-menu button:focus-visible { background: var(--hover); }
+.app-menu button .ico { color: var(--muted); }
+.app-menu kbd { margin-left: auto; color: var(--muted); }
+.app-menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 2px; width: auto; }
+@media (max-width: 760px) {
+  .app-file, .app-extra { display: none; }
+  .app-more { display: block; }
+  .app-file + .tb-group { border-left: 0; padding-left: 0; margin-left: 0; }
+}
+@media (max-width: 480px) {
+  .topbar { gap: 4px; padding: 0 8px; }
+  .brand { margin-right: 0; }
+  .tb-group + .tb-group { padding-left: 4px; }
+  button.with-icon { padding: 7px 9px; }
+  .with-icon .btn-txt { display: none; }  /* Export keeps its icon and tooltip */
+  .title-input { padding: 6px 6px; font-size: 13px; }
+}
+@media (max-width: 360px) { .brand { display: none; } } /* the logo is decoration; the title needs the room */
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><svg viewBox="0 0 40 40" width="26" height="26"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="20" cy="9" r="6" fill="#fff"/><path d="M20,15 V27 M20,27 L13,37 M20,27 L27,37 M20,19 L11,14 M20,19 L30,12"/></g></svg><span>StickStudio</span></div>
-  <div class="tb-group">
+  <div class="tb-group app-file">
     <button class="ibtn" data-act="new" data-icon="new" data-tip="New cartoon" data-sub="The current one stays in Projects"></button>
     <button class="ibtn" data-act="projects" data-icon="projects" data-tip="Projects" data-sub="Your cartoons stored in this browser"></button>
     <button class="ibtn" data-act="open" data-icon="open" data-tip="Open project file" data-key="Ctrl+O"></button>
@@ -345,10 +371,27 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     <span id="dirtyMark" class="dirty-mark" title="Changes not yet saved to a file (your work is still kept in the browser)" hidden>●</span>
   </div>
   <div class="tb-group tb-right">
-    <button class="ibtn" data-act="help" data-icon="help" data-tip="Help &amp; shortcuts" data-key="F1"></button>
-    <button class="ibtn" data-act="print" data-icon="print" data-tip="Print" data-key="Ctrl+P"></button>
-    <button class="ibtn" data-act="png" data-icon="image" data-tip="Export images" data-sub="PNG, ZIP or one long strip"></button>
-    <button data-act="pdf" class="primary with-icon" data-icon-left="export" data-tip="Export the finished cartoon as PDF" data-key="Ctrl+E">Export</button>
+    <div class="app-extra">
+      <button class="ibtn" data-act="help" data-icon="help" data-tip="Help &amp; shortcuts" data-key="F1"></button>
+      <button class="ibtn" data-act="print" data-icon="print" data-tip="Print" data-key="Ctrl+P"></button>
+      <button class="ibtn" data-act="png" data-icon="image" data-tip="Export images" data-sub="PNG, ZIP or one long strip"></button>
+    </div>
+    <!-- narrow screens: the file buttons, Help, Print and Images move into this menu -->
+    <div class="app-more">
+      <button class="ibtn" data-appmore data-icon="more" data-tip="More" aria-haspopup="true" aria-expanded="false" aria-controls="appMenu"></button>
+      <div id="appMenu" class="app-menu" role="menu" aria-label="More" hidden>
+        <button role="menuitem" data-act="new" data-mi="new">New cartoon</button>
+        <button role="menuitem" data-act="projects" data-mi="projects">Projects</button>
+        <button role="menuitem" data-act="open" data-mi="open">Open file…<kbd>Ctrl+O</kbd></button>
+        <button role="menuitem" data-act="save" data-mi="save">Save file<kbd>Ctrl+S</kbd></button>
+        <hr>
+        <button role="menuitem" data-act="print" data-mi="print">Print<kbd>Ctrl+P</kbd></button>
+        <button role="menuitem" data-act="png" data-mi="image">Export images</button>
+        <hr>
+        <button role="menuitem" data-act="help" data-mi="help">Help &amp; shortcuts<kbd>F1</kbd></button>
+      </div>
+    </div>
+    <button data-act="pdf" class="primary with-icon" data-icon-left="export" data-tip="Export the finished cartoon as PDF" data-key="Ctrl+E" aria-label="Export"><span class="btn-txt">Export</span></button>
   </div>
 </header>
 <div id="toolbar" class="toolbar" role="toolbar" aria-label="Edit the selection"></div>
@@ -2044,6 +2087,31 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   $$('[data-icon]').forEach(b => { b.innerHTML = icon(b.dataset.icon); if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', b.dataset.tip || ''); });
   $$('[data-icon-left]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.iconLeft, 16)); });
   $$('[data-tab-icon]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.tabIcon, 18)); });
+  $$('[data-mi]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.mi, 16)); });
+
+  // ⋯ menu in the app bar (only shown on narrow screens, see .app-more in the CSS)
+  const appMenu = $('#appMenu'), appMoreBtn = $('[data-appmore]');
+  function toggleAppMenu(show) {
+    show = show === undefined ? appMenu.hidden : show;
+    if (show === !appMenu.hidden) return;
+    appMenu.hidden = !show; appMoreBtn.setAttribute('aria-expanded', show); appMoreBtn.classList.toggle('on', show);
+    if (show) {
+      const r = appMoreBtn.getBoundingClientRect();
+      appMenu.style.top = (r.bottom + 6) + 'px';
+      appMenu.style.left = clamp(r.right - appMenu.offsetWidth, 8, innerWidth - appMenu.offsetWidth - 8) + 'px';
+      appMenu.querySelector('button').focus({ preventScroll: true });
+    }
+  }
+  appMoreBtn.addEventListener('click', () => toggleAppMenu());
+  appMenu.addEventListener('click', e => { if (e.target.closest('[data-act]')) toggleAppMenu(false); });
+  appMenu.addEventListener('keydown', e => {
+    e.stopPropagation();
+    const items = $$('#appMenu button'), i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); toggleAppMenu(false); appMoreBtn.focus(); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus(); }
+  });
+  document.addEventListener('mousedown', e => { if (!appMenu.hidden && !e.target.closest('.app-more')) toggleAppMenu(false); }, true);
+  window.addEventListener('resize', () => toggleAppMenu(false));
   // one shared tooltip that shows the label, an optional sub-line and the keyboard shortcut
   const tip = $('#tip'); let tipTimer = null, tipFor = null;
   function hideTip() { clearTimeout(tipTimer); tipFor = null; tip.hidden = true; }
