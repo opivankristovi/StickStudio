@@ -36,11 +36,11 @@
 
 <main class="main">
   <aside class="library">
-    <nav class="lib-tabs">
-      <button data-tab="characters" class="active">Characters</button>
-      <button data-tab="objects">Objects</button>
-      <button data-tab="scenes">Scenes</button>
-      <button data-tab="balloons">Balloons</button>
+    <nav class="lib-tabs" role="tablist" aria-label="Library">
+      <button data-tab="characters" data-tab-icon="figure" class="active" role="tab" aria-selected="true" title="Characters"><span>Characters</span></button>
+      <button data-tab="objects" data-tab-icon="object" role="tab" aria-selected="false" title="Objects"><span>Objects</span></button>
+      <button data-tab="scenes" data-tab-icon="scene" role="tab" aria-selected="false" title="Scenes"><span>Scenes</span></button>
+      <button data-tab="balloons" data-tab-icon="balloon" role="tab" aria-selected="false" title="Balloons"><span>Balloons</span></button>
     </nav>
     <div id="libBody" class="lib-body"></div>
     <div class="lib-hint">Drag onto a panel, or click to add to the selected panel.</div>

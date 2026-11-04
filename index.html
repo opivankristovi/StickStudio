@@ -101,9 +101,17 @@ button.with-icon { display: inline-flex; align-items: center; gap: 6px; padding:
 .inspector { border-left: 1px solid var(--line); overflow-y: auto; padding-bottom: 30px; }
 
 /* ---------- library */
-.lib-tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
-.lib-tabs button { border: 0; border-radius: 0; padding: 10px 2px; background: transparent; border-bottom: 2px solid transparent; font-weight: 600; color: var(--muted); }
-.lib-tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+/* icon above a short label, so all four tabs fit even in the narrow side panel */
+/* each tab starts at its label's width and shares the rest, so a long label like "Characters" gets the room it needs */
+.lib-tabs { display: flex; gap: 2px; padding: 4px 4px 0; border-bottom: 1px solid var(--line); }
+.lib-tabs button {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 2px 6px;
+  border: 0; border-radius: 8px 8px 0 0; background: transparent; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font-weight: 600; font-size: 11.5px; line-height: 1.1; color: var(--muted);
+}
+.lib-tabs button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-tabs button:hover { background: var(--hover); color: var(--ink); border-color: transparent; border-bottom-color: transparent; }
+.lib-tabs button.active, .lib-tabs button.active:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .lib-body { flex: 1; overflow-y: auto; padding: 10px; }
 .lib-hint { padding: 8px 10px; color: var(--muted); border-top: 1px solid var(--line); font-size: 12px; }
 .lib-section { margin: 4px 0 6px; font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
@@ -334,11 +342,11 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
 
 <main class="main">
   <aside class="library">
-    <nav class="lib-tabs">
-      <button data-tab="characters" class="active">Characters</button>
-      <button data-tab="objects">Objects</button>
-      <button data-tab="scenes">Scenes</button>
-      <button data-tab="balloons">Balloons</button>
+    <nav class="lib-tabs" role="tablist" aria-label="Library">
+      <button data-tab="characters" data-tab-icon="figure" class="active" role="tab" aria-selected="true" title="Characters"><span>Characters</span></button>
+      <button data-tab="objects" data-tab-icon="object" role="tab" aria-selected="false" title="Objects"><span>Objects</span></button>
+      <button data-tab="scenes" data-tab-icon="scene" role="tab" aria-selected="false" title="Scenes"><span>Scenes</span></button>
+      <button data-tab="balloons" data-tab-icon="balloon" role="tab" aria-selected="false" title="Balloons"><span>Balloons</span></button>
     </nav>
     <div id="libBody" class="lib-body"></div>
     <div class="lib-hint">Drag onto a panel, or click to add to the selected panel.</div>
@@ -1880,7 +1888,7 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   }
 
   function renderLibrary() {
-    $$('.lib-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
+    $$('.lib-tabs button').forEach(b => { const on = b.dataset.tab === state.tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
     let h = '';
     if (state.tab === 'characters') {
       const mine = readJSON(PRESET_KEY, []);
@@ -2010,6 +2018,7 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     object: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
     balloon: '<path d="M12 4c4.7 0 8.5 2.9 8.5 6.5S16.7 17 12 17c-.9 0-1.8-.1-2.6-.3L5 19.5l1.2-3.9C4.5 14.4 3.5 12.6 3.5 10.5 3.5 6.9 7.3 4 12 4z"/>',
     panel: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v9"/>',
+    scene: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/>',
     more: '<circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/>',
   };
   const icon = (name, size = 18) => `<svg class="ico" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
@@ -2021,6 +2030,7 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
   // static buttons in the page: fill in their icons once
   $$('[data-icon]').forEach(b => { b.innerHTML = icon(b.dataset.icon); if (!b.getAttribute('aria-label')) b.setAttribute('aria-label', b.dataset.tip || ''); });
   $$('[data-icon-left]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.iconLeft, 16)); });
+  $$('[data-tab-icon]').forEach(b => { b.insertAdjacentHTML('afterbegin', icon(b.dataset.tabIcon, 18)); });
   // one shared tooltip that shows the label, an optional sub-line and the keyboard shortcut
   const tip = $('#tip'); let tipTimer = null, tipFor = null;
   function hideTip() { clearTimeout(tipTimer); tipFor = null; tip.hidden = true; }
