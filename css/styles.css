@@ -73,7 +73,7 @@ button.with-icon { display: inline-flex; align-items: center; gap: 6px; padding:
 .tb-sel { display: flex; align-items: center; gap: 8px; padding: 0 10px 0 2px; font-weight: 600; white-space: nowrap; color: var(--ink); flex-shrink: 0; min-width: 120px; }
 .tb-sel .ico { color: var(--accent); }
 .tb-sel.muted, .tb-sel.muted .ico { color: var(--muted); font-weight: 400; }
-.tb-hint { color: var(--muted); padding-left: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-hint { color: var(--muted); padding-left: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1 1 0; min-width: 0; }
 .tb-select { height: 30px; max-width: 128px; margin-right: 2px; border-radius: 7px; }
 .tb-num { width: 56px; height: 30px; margin-right: 4px; border-radius: 7px; }
 
@@ -274,3 +274,23 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
 .picker.faces .thumb svg { height: 44px; }
 .picker .thumb span { font-size: 10.5px; }
 .picker .thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------- toolbar on smaller screens: compact mode and the ⋯ menu (see fitToolbar) */
+.toolbar.compact { padding: 0 8px; }
+.toolbar.compact .tg { padding: 0 3px; }
+.toolbar.compact .tb-sel { min-width: 0; padding-right: 6px; }
+.toolbar.compact .tb-sel span, .toolbar.compact > .tg .pick-lbl { display: none; }
+.toolbar.compact > .tg .pick { padding-right: 4px; gap: 2px; }
+.toolbar.compact > .tg .tb-select { max-width: 92px; }
+.toolbar.compact > .tg .tb-num { width: 48px; }
+.tb-more { flex-shrink: 0; padding-left: 4px; border-left: 1px solid var(--line); }
+.tb-more[hidden] { display: none; }
+.tb-menu {
+  position: fixed; z-index: 64; display: flex; flex-direction: column; gap: 2px; padding: 6px; min-width: 220px; max-width: calc(100vw - 16px);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.5);
+}
+.tb-menu[hidden] { display: none; }
+.tb-menu-row { display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 6px; }
+.tb-menu-row + .tb-menu-row { border-top: 1px solid var(--line); padding-top: 8px; }
+.tb-menu-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; padding: 0 2px; }
+.tb-menu .tg { border-left: 0; padding: 0; flex-wrap: wrap; }
