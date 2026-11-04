@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StickStudio – Cartoon Maker</title>
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><svg viewBox="0 0 40 40" width="28" height="28"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="20" cy="9" r="6" fill="#fff"/><path d="M20,15 V27 M20,27 L13,37 M20,27 L27,37 M20,19 L11,14 M20,19 L30,12"/></g></svg>StickStudio</div>
+  <input id="docTitle" class="title-input" type="text" spellcheck="false" title="Cartoon title (used as the PDF file name)">
+  <span id="dirtyMark" class="dirty-mark" title="Changes not yet saved to a file (your work is still kept in the browser)" hidden>●</span>
+  <div class="tb-group">
+    <button data-act="new" title="New cartoon (the current one stays in Projects)">New</button>
+    <button data-act="projects" title="Your recent cartoons stored in this browser">Projects</button>
+    <button data-act="open" title="Open a project file (.json) – Ctrl+O">Open</button>
+    <button data-act="save" title="Save project as a .json file – Ctrl+S">Save</button>
+    <input type="file" id="fileOpen" accept=".json,application/json" hidden>
+  </div>
+  <div class="tb-group">
+    <button data-act="undo" id="btnUndo" title="Undo (Ctrl+Z)">↶ Undo</button>
+    <button data-act="redo" id="btnRedo" title="Redo (Ctrl+Y)">↷ Redo</button>
+  </div>
+  <div class="tb-group">
+    <button data-act="zoomOut" title="Zoom out">−</button>
+    <span id="zoomLabel" class="zoom-label">100%</span>
+    <button data-act="zoomIn" title="Zoom in">+</button>
+    <button data-act="zoomFit" title="Fit page to window">Fit</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="tb-group">
+    <button data-act="help" title="Help &amp; keyboard shortcuts (F1)">?</button>
+    <button data-act="print" title="Print (Ctrl+P)">Print</button>
+    <button data-act="png" title="Export images (PNG, ZIP, long strip)">Images</button>
+    <button data-act="pdf" class="primary" title="Export the finished cartoon as PDF (Ctrl+E)">Export PDF</button>
+  </div>
+</header>
+
+<main class="main">
+  <aside class="library">
+    <nav class="lib-tabs">
+      <button data-tab="characters" class="active">Characters</button>
+      <button data-tab="objects">Objects</button>
+      <button data-tab="scenes">Scenes</button>
+      <button data-tab="balloons">Balloons</button>
+    </nav>
+    <div id="libBody" class="lib-body"></div>
+    <div class="lib-hint">Drag onto a panel, or click to add to the selected panel.</div>
+  </aside>
+
+  <section class="stage">
+    <div id="stageScroll" class="stage-scroll">
+      <div id="canvasWrap" class="canvas-wrap">
+        <svg id="page" xmlns="http://www.w3.org/2000/svg"></svg>
+        <textarea id="inlineEditor" class="inline-editor" spellcheck="true" hidden></textarea>
+      </div>
+    </div>
+    <div class="pagebar">
+      <div id="pageTabs" class="page-tabs"></div>
+      <button data-act="addPage" title="Add a page with the same layout">+ Page</button>
+      <button data-act="dupPage" title="Duplicate this page">Duplicate</button>
+      <button data-act="pageLeft" title="Move page left">◀</button>
+      <button data-act="pageRight" title="Move page right">▶</button>
+      <button data-act="delPage" class="danger" title="Delete this page">Delete page</button>
+    </div>
+  </section>
+
+  <aside id="inspector" class="inspector"></aside>
+</main>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-card">
+    <h2>Export</h2>
+    <label class="row">Export as
+      <select id="exType">
+        <option value="pdf">PDF – images (best compatibility)</option>
+        <option value="vector">PDF – vector, selectable text (via print dialog)</option>
+        <option value="png">PNG – one image per page</option>
+        <option value="zip">PNG – all pages in a .zip</option>
+        <option value="strip">PNG – all pages stacked in one long image</option>
+      </select>
+    </label>
+    <label class="row">Pages
+      <select id="pdfPages"><option value="all">All pages</option><option value="current">Current page only</option><option value="range">Page range…</option></select>
+    </label>
+    <label class="row" id="rangeRow" hidden>Range <input type="text" id="pdfRange" placeholder="e.g. 1-3, 5"></label>
+    <label class="row" id="dpiRow">Quality
+      <select id="pdfDpi"><option value="150">Draft (150 dpi)</option><option value="220" selected>Good (220 dpi)</option><option value="300">Print (300 dpi)</option></select>
+    </label>
+    <label class="row">File name <input type="text" id="exName"></label>
+    <label class="row check"><input type="checkbox" id="pdfMono"> Black &amp; white</label>
+    <label class="row check" id="marksRow"><input type="checkbox" id="pdfMarks"> Crop marks (for a print shop)</label>
+    <p id="vectorHint" class="hint" hidden>Your browser's print window opens. Choose <b>“Save as PDF”</b> as the printer. Text stays sharp and selectable.</p>
+    <div id="pdfStatus" class="status"></div>
+    <div class="modal-actions">
+      <button data-act="closeModal">Cancel</button>
+      <button data-act="doPdf" class="primary" id="exGo">Export</button>
+    </div>
+  </div>
+</div>
+
+<div id="projectsModal" class="modal" hidden>
+  <div class="modal-card wide">
+    <h2>Your cartoons <small class="hint">(kept in this browser)</small></h2>
+    <ul id="projectList" class="project-list"></ul>
+    <p class="hint">Tip: use <b>Save</b> to keep a file copy as well. Clearing your browser data removes this list.</p>
+    <div class="modal-actions">
+      <button data-act="new">+ New cartoon</button>
+      <button data-act="closeModal" class="primary">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="helpModal" class="modal" hidden>
+  <div class="modal-card wide">
+    <h2>Welcome to StickStudio 👋</h2>
+    <ol class="help-steps">
+      <li><b>Pick a layout</b> on the right (Page layout). Use a preset, or set rows and panels per row. Click a panel to split or merge it, or to change its width.</li>
+      <li><b>Drag a scene</b> from the <i>Scenes</i> tab onto a panel.</li>
+      <li><b>Drag characters, objects and balloons</b> into the panels. Double-click a balloon to type.</li>
+      <li><b>Add pages</b> at the bottom. Drag the page thumbnails to put them in a different order.</li>
+      <li><b>Export PDF</b> when you're done. Your work saves automatically, and <i>Projects</i> lists all your cartoons.</li>
+    </ol>
+    <h3 class="help-h">Shortcuts</h3>
+    <div class="shortcut-grid">
+      <kbd>Del</kbd><span>delete</span><kbd>Ctrl+D</kbd><span>duplicate</span>
+      <kbd>Ctrl+C / V</kbd><span>copy / paste</span><kbd>Alt+drag</kbd><span>drag a copy</span>
+      <kbd>Arrows</kbd><span>nudge (Shift ×10)</span><kbd>H / V</kbd><span>flip</span>
+      <kbd>[ ]</kbd><span>layer down / up</span><kbd>Enter</kbd><span>edit balloon text</span>
+      <kbd>Ctrl+Z / Y</kbd><span>undo / redo</span><kbd>Ctrl+S</kbd><span>save file</span>
+      <kbd>Ctrl+O</kbd><span>open file</span><kbd>Ctrl+E</kbd><span>export</span>
+      <kbd>Ctrl+P</kbd><span>print</span><kbd>PgUp / PgDn</kbd><span>previous / next page</span>
+      <kbd>Ctrl+wheel</kbd><span>zoom</span><kbd>Ctrl while dragging</kbd><span>no snapping</span>
+    </div>
+    <div class="modal-actions"><button data-act="closeModal" class="primary">Let's go!</button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="js/figures.js"></script>
+<script src="js/objects.js"></script>
+<script src="js/balloons.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

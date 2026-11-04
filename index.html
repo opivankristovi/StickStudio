@@ -1,0 +1,2554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StickStudio – Cartoon Maker</title>
+<meta name="color-scheme" content="dark">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #111418;          /* stage behind the paper */
+  --panel: #1b1f25;       /* side bars, top bar */
+  --field: #242a32;       /* buttons, inputs */
+  --hover: #2d343e;
+  --ink: #e6e9ee;
+  --muted: #9aa3af;
+  --line: #333a44;
+  --accent: #5b8def;
+  --accent-soft: #22324f;
+  --danger: #ff6b6b;
+  --thumb: #eceef1;       /* library cards stay light so black line art reads */
+  --radius: 8px;
+  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  font-size: 13px;
+  color: var(--ink);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button {
+  border: 1px solid var(--line); background: var(--field); border-radius: 6px; padding: 5px 10px; cursor: pointer;
+  white-space: nowrap;
+}
+button:hover { border-color: #4a5361; background: var(--hover); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.primary:hover { background: #4a7de0; }
+button.danger { color: var(--danger); }
+button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+button:disabled { opacity: .45; cursor: default; }
+
+/* ---------- top bar */
+.topbar {
+  height: 50px; display: flex; align-items: center; gap: 12px; padding: 0 12px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 16px; font-family: "Comic Sans MS", "Segoe Print", cursive; }
+.title-input { border: 1px solid transparent; border-radius: 6px; padding: 5px 8px; width: 220px; font-weight: 600; background: transparent; }
+.title-input:hover, .title-input:focus { border-color: var(--line); background: var(--field); outline: none; }
+.tb-group { display: flex; align-items: center; gap: 4px; }
+.tb-group + .tb-group { padding-left: 10px; border-left: 1px solid var(--line); }
+.zoom-label { min-width: 44px; text-align: center; color: var(--muted); }
+.spacer { flex: 1; }
+
+/* ---------- layout */
+.main { display: grid; grid-template-columns: 290px 1fr 300px; height: calc(100% - 50px); }
+.library, .inspector { background: var(--panel); overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+.library { border-right: 1px solid var(--line); }
+.inspector { border-left: 1px solid var(--line); overflow-y: auto; padding-bottom: 30px; }
+
+/* ---------- library */
+.lib-tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
+.lib-tabs button { border: 0; border-radius: 0; padding: 10px 2px; background: transparent; border-bottom: 2px solid transparent; font-weight: 600; color: var(--muted); }
+.lib-tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+.lib-body { flex: 1; overflow-y: auto; padding: 10px; }
+.lib-hint { padding: 8px 10px; color: var(--muted); border-top: 1px solid var(--line); font-size: 12px; }
+.lib-section { margin: 4px 0 6px; font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; margin-bottom: 14px; }
+.grid.small { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 4px; }
+.grid.wide { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+.thumb {
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--thumb); padding: 4px; cursor: grab;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; user-select: none;
+}
+.thumb:hover { border-color: var(--accent); box-shadow: 0 1px 4px rgba(47,111,237,.15); }
+.thumb.sel { border-color: var(--accent); background: #cfdcf7; box-shadow: 0 0 0 2px var(--accent); }
+.thumb svg { width: 100%; height: 64px; pointer-events: none; }
+.grid.small .thumb svg { height: 44px; }
+.grid.wide .thumb svg { height: 72px; }
+.thumb span { font-size: 11px; color: #4b5563; text-align: center; line-height: 1.15; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.chips button { padding: 3px 8px; border-radius: 999px; font-size: 12px; }
+.lib-row { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; }
+.lib-row select { flex: 1; }
+
+/* ---------- stage */
+.stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.stage-scroll { flex: 1; overflow: auto; position: relative; }
+.canvas-wrap { position: relative; padding: 28px; width: max-content; min-width: 100%; display: flex; justify-content: center; }
+#page { background: #fff; box-shadow: 0 4px 30px rgba(0,0,0,.6); touch-action: none; user-select: none; display: block; }
+#page .item { cursor: move; }
+#page .panel-bg { cursor: default; }
+#page [data-h] { cursor: pointer; }
+.stage-scroll.drop-hover #page { outline: 3px dashed var(--accent); outline-offset: 4px; }
+.inline-editor {
+  position: absolute; resize: none; border: 2px solid var(--accent); border-radius: 6px;
+  background: rgba(255,255,255,.96); color: #1d1d1d; padding: 4px; outline: none; line-height: 1.2; overflow: hidden; z-index: 5;
+}
+.pagebar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--panel); border-top: 1px solid var(--line); }
+.page-tabs { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+.page-tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ---------- inspector */
+.sec { border-bottom: 1px solid var(--line); padding: 12px; }
+.sec h3 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+.sec h3 small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.row > .lbl { width: 86px; flex-shrink: 0; color: var(--muted); }
+.row input[type=range] { flex: 1; min-width: 0; }
+.row input[type=number] { width: 60px; }
+.row select, .row input[type=text] { flex: 1; min-width: 0; }
+.row .val { width: 34px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.row.check { gap: 6px; }
+input[type=color] { width: 34px; height: 26px; padding: 0 2px; border: 1px solid var(--line); border-radius: 5px; background: var(--field); }
+input[type=number], input[type=text], select, textarea { border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; background: var(--field); }
+textarea.text-edit { width: 100%; min-height: 76px; resize: vertical; margin-bottom: 8px; }
+.btns { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.btns button { flex: 1 0 auto; padding: 5px 6px; }
+.rowcols { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 8px; align-items: center; margin-bottom: 8px; }
+.rowcols span { color: var(--muted); }
+.rowcols input { width: 100%; }
+.hint { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.fx-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.fx-chips button { padding: 3px 7px; font-size: 12px; border-radius: 999px; }
+.layers { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; }
+.layers li { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.layers li:last-child { border-bottom: 0; }
+.layers li:hover { background: var(--hover); }
+.layers li.sel { background: var(--accent-soft); }
+.layers li .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layers li button { padding: 0 5px; border: 0; background: transparent; }
+
+/* ---------- modal / toast */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal[hidden] { display: none; }
+.modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; width: 360px; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+.modal-card h2 { margin: 0 0 14px; font-size: 18px; }
+.modal-card .row { justify-content: space-between; }
+.modal-card select { max-width: 200px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.status { min-height: 18px; color: var(--muted); }
+.toast { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); background: #3a4350; color: #fff; padding: 8px 14px; border-radius: 8px; z-index: 60; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+.toast[hidden] { display: none; }
+
+@media (max-width: 1100px) {
+  .main { grid-template-columns: 240px 1fr 260px; }
+  .title-input { width: 140px; }
+}
+/* narrow windows: stack canvas, library and inspector vertically */
+@media (max-width: 860px) {
+  html, body { overflow: auto; height: auto; }
+  .topbar { height: auto; flex-wrap: wrap; padding: 8px 12px; row-gap: 6px; }
+  .tb-group + .tb-group { padding-left: 0; border-left: 0; }
+  .spacer { display: none; }
+  .main { display: flex; flex-direction: column; height: auto; }
+  .stage { order: 1; height: 72vh; min-height: 360px; }
+  .library { order: 2; max-height: 60vh; border-right: 0; border-top: 1px solid var(--line); }
+  .inspector { order: 3; overflow: visible; border-left: 0; border-top: 1px solid var(--line); }
+  .canvas-wrap { padding: 12px; }
+  .pagebar { flex-wrap: wrap; }
+  .page-tabs { flex-basis: 100%; }
+}
+
+/* ---------- additions: unsaved marker, page thumbnails, layout gallery, projects, help */
+.dirty-mark { color: #ffb020; font-size: 14px; margin-left: -6px; cursor: help; }
+.dirty-mark[hidden] { display: none; }
+.pagebar { padding: 6px 12px; }
+.page-tabs { align-items: flex-end; padding: 2px 0; }
+.page-thumb { position: relative; padding: 3px; display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--field); flex-shrink: 0; }
+.page-thumb svg { height: 58px; width: auto; display: block; background: #fff; border-radius: 2px; pointer-events: none; }
+.page-thumb span { font-size: 11px; color: var(--muted); line-height: 1; }
+.page-tabs .page-thumb.active { background: var(--accent-soft); border-color: var(--accent); color: inherit; box-shadow: 0 0 0 1px var(--accent); }
+.page-tabs .page-thumb.active span { color: var(--accent); font-weight: 700; }
+.page-thumb.drop-target { outline: 2px dashed #ffb020; outline-offset: 2px; }
+.layout-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; margin-bottom: 10px; }
+.layout-gallery button { padding: 3px; display: flex; justify-content: center; }
+.layout-gallery svg { width: 30px; height: 39px; display: block; }
+.thumb.mine { position: relative; }
+.del-mine { position: absolute; top: 2px; right: 2px; padding: 0 5px; line-height: 16px; font-size: 13px; border-radius: 50%; background: #fff; color: #b33; border-color: #ccc; display: none; }
+.thumb.mine:hover .del-mine { display: block; }
+.toast { display: flex; align-items: center; gap: 12px; }
+.toast button { background: transparent; border-color: #8fb0ff; color: #cfe0ff; padding: 2px 10px; }
+.modal-card.wide { width: 560px; max-width: calc(100vw - 30px); max-height: calc(100vh - 40px); overflow-y: auto; }
+.modal-card h2 small { font-weight: 400; font-size: 12px; }
+.modal-card input[type=text] { flex: 1; max-width: 200px; }
+.modal-card .row[hidden], .modal-card p[hidden] { display: none; }
+.project-list { list-style: none; margin: 0 0 10px; padding: 0; max-height: 50vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+.project-list li { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.project-list li:last-child { border-bottom: 0; }
+.project-list li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.project-list li b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-list li small { color: var(--muted); }
+.project-list li.current { background: var(--accent-soft); }
+.help-steps { padding-left: 20px; line-height: 1.55; margin: 0 0 12px; }
+.help-steps li { margin-bottom: 4px; }
+.help-h { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 0; }
+.shortcut-grid { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 5px 10px; align-items: center; }
+kbd { background: var(--field); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-family: inherit; font-size: 12px; white-space: nowrap; justify-self: start; }
+@media print { body > *:not(#printFrame) { display: none !important; } }
+
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><svg viewBox="0 0 40 40" width="28" height="28"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="20" cy="9" r="6" fill="#fff"/><path d="M20,15 V27 M20,27 L13,37 M20,27 L27,37 M20,19 L11,14 M20,19 L30,12"/></g></svg>StickStudio</div>
+  <input id="docTitle" class="title-input" type="text" spellcheck="false" title="Cartoon title (used as the PDF file name)">
+  <span id="dirtyMark" class="dirty-mark" title="Changes not yet saved to a file (your work is still kept in the browser)" hidden>●</span>
+  <div class="tb-group">
+    <button data-act="new" title="New cartoon (the current one stays in Projects)">New</button>
+    <button data-act="projects" title="Your recent cartoons stored in this browser">Projects</button>
+    <button data-act="open" title="Open a project file (.json) – Ctrl+O">Open</button>
+    <button data-act="save" title="Save project as a .json file – Ctrl+S">Save</button>
+    <input type="file" id="fileOpen" accept=".json,application/json" hidden>
+  </div>
+  <div class="tb-group">
+    <button data-act="undo" id="btnUndo" title="Undo (Ctrl+Z)">↶ Undo</button>
+    <button data-act="redo" id="btnRedo" title="Redo (Ctrl+Y)">↷ Redo</button>
+  </div>
+  <div class="tb-group">
+    <button data-act="zoomOut" title="Zoom out">−</button>
+    <span id="zoomLabel" class="zoom-label">100%</span>
+    <button data-act="zoomIn" title="Zoom in">+</button>
+    <button data-act="zoomFit" title="Fit page to window">Fit</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="tb-group">
+    <button data-act="help" title="Help &amp; keyboard shortcuts (F1)">?</button>
+    <button data-act="print" title="Print (Ctrl+P)">Print</button>
+    <button data-act="png" title="Export images (PNG, ZIP, long strip)">Images</button>
+    <button data-act="pdf" class="primary" title="Export the finished cartoon as PDF (Ctrl+E)">Export PDF</button>
+  </div>
+</header>
+
+<main class="main">
+  <aside class="library">
+    <nav class="lib-tabs">
+      <button data-tab="characters" class="active">Characters</button>
+      <button data-tab="objects">Objects</button>
+      <button data-tab="scenes">Scenes</button>
+      <button data-tab="balloons">Balloons</button>
+    </nav>
+    <div id="libBody" class="lib-body"></div>
+    <div class="lib-hint">Drag onto a panel, or click to add to the selected panel.</div>
+  </aside>
+
+  <section class="stage">
+    <div id="stageScroll" class="stage-scroll">
+      <div id="canvasWrap" class="canvas-wrap">
+        <svg id="page" xmlns="http://www.w3.org/2000/svg"></svg>
+        <textarea id="inlineEditor" class="inline-editor" spellcheck="true" hidden></textarea>
+      </div>
+    </div>
+    <div class="pagebar">
+      <div id="pageTabs" class="page-tabs"></div>
+      <button data-act="addPage" title="Add a page with the same layout">+ Page</button>
+      <button data-act="dupPage" title="Duplicate this page">Duplicate</button>
+      <button data-act="pageLeft" title="Move page left">◀</button>
+      <button data-act="pageRight" title="Move page right">▶</button>
+      <button data-act="delPage" class="danger" title="Delete this page">Delete page</button>
+    </div>
+  </section>
+
+  <aside id="inspector" class="inspector"></aside>
+</main>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-card">
+    <h2>Export</h2>
+    <label class="row">Export as
+      <select id="exType">
+        <option value="pdf">PDF – images (best compatibility)</option>
+        <option value="vector">PDF – vector, selectable text (via print dialog)</option>
+        <option value="png">PNG – one image per page</option>
+        <option value="zip">PNG – all pages in a .zip</option>
+        <option value="strip">PNG – all pages stacked in one long image</option>
+      </select>
+    </label>
+    <label class="row">Pages
+      <select id="pdfPages"><option value="all">All pages</option><option value="current">Current page only</option><option value="range">Page range…</option></select>
+    </label>
+    <label class="row" id="rangeRow" hidden>Range <input type="text" id="pdfRange" placeholder="e.g. 1-3, 5"></label>
+    <label class="row" id="dpiRow">Quality
+      <select id="pdfDpi"><option value="150">Draft (150 dpi)</option><option value="220" selected>Good (220 dpi)</option><option value="300">Print (300 dpi)</option></select>
+    </label>
+    <label class="row">File name <input type="text" id="exName"></label>
+    <label class="row check"><input type="checkbox" id="pdfMono"> Black &amp; white</label>
+    <label class="row check" id="marksRow"><input type="checkbox" id="pdfMarks"> Crop marks (for a print shop)</label>
+    <p id="vectorHint" class="hint" hidden>Your browser's print window opens. Choose <b>“Save as PDF”</b> as the printer. Text stays sharp and selectable.</p>
+    <div id="pdfStatus" class="status"></div>
+    <div class="modal-actions">
+      <button data-act="closeModal">Cancel</button>
+      <button data-act="doPdf" class="primary" id="exGo">Export</button>
+    </div>
+  </div>
+</div>
+
+<div id="projectsModal" class="modal" hidden>
+  <div class="modal-card wide">
+    <h2>Your cartoons <small class="hint">(kept in this browser)</small></h2>
+    <ul id="projectList" class="project-list"></ul>
+    <p class="hint">Tip: use <b>Save</b> to keep a file copy as well. Clearing your browser data removes this list.</p>
+    <div class="modal-actions">
+      <button data-act="new">+ New cartoon</button>
+      <button data-act="closeModal" class="primary">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="helpModal" class="modal" hidden>
+  <div class="modal-card wide">
+    <h2>Welcome to StickStudio 👋</h2>
+    <ol class="help-steps">
+      <li><b>Pick a layout</b> on the right (Page layout). Use a preset, or set rows and panels per row. Click a panel to split or merge it, or to change its width.</li>
+      <li><b>Drag a scene</b> from the <i>Scenes</i> tab onto a panel.</li>
+      <li><b>Drag characters, objects and balloons</b> into the panels. Double-click a balloon to type.</li>
+      <li><b>Add pages</b> at the bottom. Drag the page thumbnails to put them in a different order.</li>
+      <li><b>Export PDF</b> when you're done. Your work saves automatically, and <i>Projects</i> lists all your cartoons.</li>
+    </ol>
+    <h3 class="help-h">Shortcuts</h3>
+    <div class="shortcut-grid">
+      <kbd>Del</kbd><span>delete</span><kbd>Ctrl+D</kbd><span>duplicate</span>
+      <kbd>Ctrl+C / V</kbd><span>copy / paste</span><kbd>Alt+drag</kbd><span>drag a copy</span>
+      <kbd>Arrows</kbd><span>nudge (Shift ×10)</span><kbd>H / V</kbd><span>flip</span>
+      <kbd>[ ]</kbd><span>layer down / up</span><kbd>Enter</kbd><span>edit balloon text</span>
+      <kbd>Ctrl+Z / Y</kbd><span>undo / redo</span><kbd>Ctrl+S</kbd><span>save file</span>
+      <kbd>Ctrl+O</kbd><span>open file</span><kbd>Ctrl+E</kbd><span>export</span>
+      <kbd>Ctrl+P</kbd><span>print</span><kbd>PgUp / PgDn</kbd><span>previous / next page</span>
+      <kbd>Ctrl+wheel</kbd><span>zoom</span><kbd>Ctrl while dragging</kbd><span>no snapping</span>
+    </div>
+    <div class="modal-actions"><button data-act="closeModal" class="primary">Let's go!</button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script>
+/* StickStudio – parametric stick figure engine.
+ * Every figure = character (costume + proportions) × pose (joint angles) × expression × effects.
+ * Angles are absolute, in degrees: 0 = straight down, 90 = forward (+x), -90 = backward, 180 = up.
+ * Figures are drawn facing right; flipping is done by the item transform.
+ */
+(function () {
+  const NW = 120, NH = 220;           // native box
+  const GROUND = 212;                 // ground line inside native box
+  const PAPER = '#ffffff';
+
+  const PROPORTIONS = {
+    adult: { torso: 52, neck: 7, upper: 29, lower: 28, thigh: 38, shin: 38, head: 17 },
+    kid:   { torso: 40, neck: 6, upper: 23, lower: 22, thigh: 29, shin: 29, head: 18 }
+  };
+
+  // ---------------------------------------------------------------- poses
+  // la/ra = left/right arm [upper, forearm], ll/rl = legs [thigh, shin]
+  const POSES = {
+    stand:    { name: 'Stand',        view: 'front', la: [-14, -8],  ra: [14, 8],    ll: [-9, -5],  rl: [9, 5] },
+    hips:     { name: 'Hands on hips',view: 'front', la: [-55, 35],  ra: [55, -35],  ll: [-11, -6], rl: [11, 6] },
+    walk:     { name: 'Walk',         view: 'side', lean: 4, la: [-28, -12], ra: [28, 45], ll: [-22, -12], rl: [24, 6] },
+    run:      { name: 'Run',          view: 'side', lean: 18, la: [-55, -110], ra: [55, 140], ll: [-35, -85], rl: [75, 10], fxAuto: ['speed'] },
+    panic:    { name: 'Panic run',    view: 'side', lean: 14, la: [150, 175], ra: [-150, -175], ll: [-35, -85], rl: [70, 5] },
+    jump:     { name: 'Jump for joy', view: 'front', la: [-140, -165], ra: [140, 165], ll: [-55, 15], rl: [55, -15], lift: 26 },
+    cheer:    { name: 'Cheer',        view: 'front', la: [-150, -170], ra: [150, 170], ll: [-12, -6], rl: [12, 6] },
+    wave:     { name: 'Wave / Hello', view: 'front', la: [-14, -8], ra: [125, 170], ll: [-9, -5], rl: [9, 5] },
+    point:    { name: 'Point',        view: 'side', la: [-18, -6], ra: [88, 90], ll: [-12, -6], rl: [12, 4] },
+    think:    { name: 'Think',        view: 'front', la: [-40, 50], ra: [25, 168], ll: [-9, -5], rl: [9, 5] },
+    scratch:  { name: 'Confused',     view: 'front', la: [-16, -10], ra: [150, -120], ll: [-9, -5], rl: [9, 5] },
+    shock:    { name: 'Shocked',      view: 'front', la: [-45, 160], ra: [45, -160], ll: [-10, -4], rl: [10, 4] },
+    shrug:    { name: 'Shrug',        view: 'front', la: [-70, -150], ra: [70, 150], ll: [-9, -5], rl: [9, 5] },
+    angry:    { name: 'Angry',        view: 'front', la: [-60, 5],   ra: [60, -5],   ll: [-24, -10], rl: [24, 10] },
+    fight:    { name: 'Fight stance', view: 'side', lean: 6, la: [30, 150], ra: [70, 160], ll: [-24, -14], rl: [26, 6] },
+    punch:    { name: 'Punch',        view: 'side', lean: 12, la: [-30, 150], ra: [90, 90], ll: [-30, -20], rl: [30, 5] },
+    kick:     { name: 'Kick',         view: 'side', lean: -12, la: [-80, -120], ra: [60, 140], ll: [-4, -4], rl: [85, 95] },
+    carry:    { name: 'Hold out',     view: 'side', la: [45, 95], ra: [55, 95], ll: [-10, -5], rl: [10, 5] },
+    sit:      { name: 'Sit (chair)',  view: 'side', la: [25, 85], ra: [35, 90], ll: [88, 2], rl: [92, -2] },
+    sitfloor: { name: 'Sit (floor)',  view: 'side', lean: -8, dx: -18, la: [40, 95], ra: [50, 100], ll: [120, 60], rl: [112, 52], ground: 'hip' },
+    kneel:    { name: 'Kneel',        view: 'side', la: [-15, -5], ra: [20, 8], ll: [2, -92], rl: [90, 0] },
+    pray:     { name: 'Kneel & bow',  view: 'side', lean: 25, head: 20, la: [70, 150], ra: [75, 150], ll: [2, -92], rl: [90, 0] },
+    lean:     { name: 'Lean on wall', view: 'side', lean: -6, la: [-20, -10], ra: [150, 172], ll: [16, -8], rl: [-6, 6] },
+    dance:    { name: 'Dance',        view: 'front', la: [-60, 30], ra: [140, 170], ll: [-6, -4], rl: [55, 10] },
+    tiptoe:   { name: 'Sneak',        view: 'side', lean: 18, la: [60, 130], ra: [40, 110], ll: [-25, -60], rl: [40, -10] },
+    fall:     { name: 'Fall over',    view: 'side', lean: -35, dx: 16, la: [-160, -130], ra: [150, 120], ll: [40, 70], rl: [70, 100], lift: 10 },
+    sad:      { name: 'Sad / slump',  view: 'side', lean: 10, head: 28, la: [8, 14], ra: [14, 20], ll: [-6, -3], rl: [6, 3] },
+    bow:      { name: 'Bow',          view: 'side', lean: 55, head: 25, dx: -22, la: [5, 15], ra: [25, 35], ll: [-4, -2], rl: [4, 2] },
+    hug:      { name: 'Arms open',    view: 'front', la: [-100, -125], ra: [100, 125], ll: [-9, -5], rl: [9, 5] },
+    fly:      { name: 'Fly / super',  view: 'side', lean: 78, dx: -34, la: [70, 60], ra: [100, 100], ll: [-80, -88], rl: [-72, -95], lift: 40 },
+  };
+
+  // ---------------------------------------------------------------- characters
+  const CHARACTERS = {
+    boy:    { name: 'Boy',    prop: 'kid',   hair: 'tuft' },
+    girl:   { name: 'Girl',   prop: 'kid',   hair: 'pigtails', dress: true },
+    man:    { name: 'Man',    prop: 'adult', hat: 'fedora' },
+    woman:  { name: 'Woman',  prop: 'adult', hair: 'long', dress: true },
+    cop:    { name: 'Cop',    prop: 'adult', hat: 'police', badge: true, belt: true },
+    king:   { name: 'King',   prop: 'adult', hat: 'crown', robe: 'cape', beard: 'short', handR: 'scepter' },
+    queen:  { name: 'Queen',  prop: 'adult', hair: 'long', hat: 'tiara', dress: true, robe: 'cape' },
+    knight: { name: 'Knight', prop: 'adult', hat: 'helmet', armor: true, handR: 'sword', handL: 'shield' },
+    wizard: { name: 'Wizard', prop: 'adult', hat: 'wizard', beard: 'long', robe: 'long', handL: 'staff' },
+    chef:   { name: 'Chef',   prop: 'adult', hat: 'chef', apron: true },
+    doctor: { name: 'Doctor', prop: 'adult', coat: true, mirror: true },
+    pirate: { name: 'Pirate', prop: 'adult', hat: 'pirate', patch: true, beard: 'short', handR: 'cutlass' },
+    baby:   { name: 'Baby',   prop: 'kid',   hair: 'curl', scale: 0.7 },
+    robot:  { name: 'Robot',  prop: 'adult', robot: true },
+  };
+
+  const EXPRESSIONS = {
+    happy: 'Happy', neutral: 'Neutral', grin: 'Big grin', laugh: 'Laugh', sad: 'Sad', cry: 'Crying',
+    angry: 'Angry', yell: 'Yelling', surprised: 'Surprised', scared: 'Scared', wink: 'Wink',
+    cool: 'Cool', sleepy: 'Sleepy', love: 'In love', smirk: 'Smirk', dizzy: 'Dizzy', none: 'No face'
+  };
+
+  const FX = {
+    speed: 'Speed lines', sweat: 'Sweat', anger: 'Anger mark', steam: 'Steam', shock: 'Shock lines',
+    question: '?', exclaim: '!?', love: 'Hearts', zzz: 'Zzz', sparkle: 'Sparkle', dizzy: 'Dizzy stars', bulb: 'Idea bulb'
+  };
+
+  const HAND_ITEMS = {
+    none: 'Nothing', sword: 'Sword', cutlass: 'Cutlass', shield: 'Shield', staff: 'Staff', scepter: 'Scepter',
+    spear: 'Spear', wand: 'Magic wand', bag: 'Handbag', briefcase: 'Briefcase', flower: 'Flower',
+    book: 'Book', cup: 'Cup', phone: 'Phone', umbrella: 'Umbrella', sign: 'Sign', balloon: 'Balloon',
+    torch: 'Torch', magnifier: 'Magnifier', flag: 'Flag', pan: 'Frying pan', ball: 'Ball', letter: 'Letter'
+  };
+
+  // ---------------------------------------------------------------- math helpers
+  const rad = a => a * Math.PI / 180;
+  const vec = (a, l) => [Math.sin(rad(a)) * l, Math.cos(rad(a)) * l];
+  const add = (p, v) => [p[0] + v[0], p[1] + v[1]];
+  const f = n => Math.round(n * 10) / 10;
+  const P = p => f(p[0]) + ',' + f(p[1]);
+
+  function skeleton(pose, L) {
+    const lean = pose.lean || 0;
+    const up = 180 - lean;
+    const hip = [0, 0];
+    const neck = add(hip, vec(up, L.torso));
+    const shoulder = add(hip, vec(up, L.torso - 5));
+    const headDir = up - (pose.head || 0);
+    const headC = add(neck, vec(headDir, L.neck + L.head));
+    const arm = a => { const e = add(shoulder, vec(a[0], L.upper)); return { e, h: add(e, vec(a[1], L.lower)), a: a[1] }; };
+    const leg = a => { const k = add(hip, vec(a[0], L.thigh)); return { k, f: add(k, vec(a[1], L.shin)) }; };
+    const s = { hip, neck, shoulder, headC, headDir, lean, la: arm(pose.la), ra: arm(pose.ra), ll: leg(pose.ll), rl: leg(pose.rl) };
+    // grounding
+    let maxY = Math.max(s.ll.f[1], s.rl.f[1], s.ll.k[1], s.rl.k[1]);
+    if (pose.ground === 'hip') maxY = Math.max(maxY, 0);
+    const dy = -maxY - (pose.lift || 0), dx = pose.dx || 0;
+    const sh = p => [p[0] + dx, p[1] + dy];
+    ['hip', 'neck', 'shoulder', 'headC'].forEach(k => s[k] = sh(s[k]));
+    ['la', 'ra'].forEach(k => { s[k].e = sh(s[k].e); s[k].h = sh(s[k].h); });
+    ['ll', 'rl'].forEach(k => { s[k].k = sh(s[k].k); s[k].f = sh(s[k].f); });
+    return s;
+  }
+
+  // ---------------------------------------------------------------- faces
+  function face(expr, c, r, side, stroke, flipX) {
+    if (expr === 'none') return '';
+    const [cx0, cy] = c;
+    const cx = cx0 + (side ? r * 0.3 : 0);
+    const ex = r * 0.36, ey = cy - r * 0.18, my = cy + r * 0.38;
+    const L = (x1, y1, x2, y2, w = 2.4) => `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke-width="${w}"/>`;
+    const dot = (x, y, rr = 2.3) => `<circle cx="${f(x)}" cy="${f(y)}" r="${rr}" fill="${stroke}" stroke="none"/>`;
+    const eyes = () => dot(cx - ex, ey) + dot(cx + ex, ey);
+    const smile = (w, d) => `<path d="M${f(cx - w)},${f(my - d / 3)} Q${f(cx)},${f(my + d)} ${f(cx + w)},${f(my - d / 3)}" stroke-width="2.4"/>`;
+    const frown = (w, d) => `<path d="M${f(cx - w)},${f(my + d / 2)} Q${f(cx)},${f(my - d)} ${f(cx + w)},${f(my + d / 2)}" stroke-width="2.4"/>`;
+    const brows = (inner, outer) => L(cx - ex - 4, ey - 5 + outer, cx - ex + 3, ey - 5 + inner) + L(cx + ex + 4, ey - 5 + outer, cx + ex - 3, ey - 5 + inner);
+    const closedEye = (x, up) => `<path d="M${f(x - 3.5)},${f(ey)} Q${f(x)},${f(ey + (up ? -4 : 3))} ${f(x + 3.5)},${f(ey)}" stroke-width="2.2"/>`;
+    switch (expr) {
+      case 'neutral': return eyes() + L(cx - 5, my + 1, cx + 5, my + 1);
+      case 'grin': return eyes() + `<path d="M${f(cx - 8)},${f(my - 2)} Q${f(cx)},${f(my + 9)} ${f(cx + 8)},${f(my - 2)} Z" fill="${PAPER}" stroke-width="2.2"/>` + L(cx - 7, my, cx + 7, my, 1.4);
+      case 'laugh': return closedEye(cx - ex, true) + closedEye(cx + ex, true) + `<path d="M${f(cx - 8)},${f(my - 3)} Q${f(cx)},${f(my + 11)} ${f(cx + 8)},${f(my - 3)} Z" fill="${stroke}" stroke-width="2"/>`;
+      case 'sad': return eyes() + brows(-3, 1) + frown(5.5, 4);
+      case 'cry': return closedEye(cx - ex, false) + closedEye(cx + ex, false) + brows(-3, 1) + frown(6, 5)
+        + `<path d="M${f(cx - ex)},${f(ey + 4)} q-2,6 0,8 q2,-2 0,-8" fill="#5ab4f0" stroke="#2a7fc0" stroke-width="1.2"/><path d="M${f(cx + ex)},${f(ey + 4)} q-2,6 0,8 q2,-2 0,-8" fill="#5ab4f0" stroke="#2a7fc0" stroke-width="1.2"/>`;
+      case 'angry': return eyes() + brows(3, -2) + frown(5.5, 3);
+      case 'yell': return eyes() + brows(4, -2) + `<ellipse cx="${f(cx)}" cy="${f(my + 1)}" rx="6" ry="5" fill="${stroke}" stroke-width="1.5"/>`;
+      case 'surprised': return `<circle cx="${f(cx - ex)}" cy="${f(ey)}" r="3.3" fill="${PAPER}" stroke-width="1.8"/><circle cx="${f(cx + ex)}" cy="${f(ey)}" r="3.3" fill="${PAPER}" stroke-width="1.8"/>` + dot(cx - ex, ey, 1.3) + dot(cx + ex, ey, 1.3) + brows(-2, -1) + `<ellipse cx="${f(cx)}" cy="${f(my + 1)}" rx="3.5" ry="4.5" fill="${PAPER}" stroke-width="2"/>`;
+      case 'scared': return `<circle cx="${f(cx - ex)}" cy="${f(ey)}" r="3.6" fill="${PAPER}" stroke-width="1.8"/><circle cx="${f(cx + ex)}" cy="${f(ey)}" r="3.6" fill="${PAPER}" stroke-width="1.8"/>` + dot(cx - ex, ey + 0.5, 1.2) + dot(cx + ex, ey + 0.5, 1.2) + brows(-4, 1)
+        + `<path d="M${f(cx - 7)},${f(my + 1)} l2.3,-2.5 l2.3,2.5 l2.3,-2.5 l2.3,2.5 l2.3,-2.5" stroke-width="1.8"/>`;
+      case 'wink': return dot(cx - ex, ey) + closedEye(cx + ex, true) + smile(6, 4);
+      case 'cool': return `<path d="M${f(cx - ex - 5)},${f(ey - 3)} h${f(2 * ex + 10)} v2 q-1,5 -5,5 h-${f(ex * 0.5)} q-3,0 -4,-4 h-2 q-1,4 -4,4 h-${f(ex * 0.5)} q-4,0 -5,-5 z" fill="${stroke}" stroke-width="1.4"/>` + `<path d="M${f(cx - 4)},${f(my)} Q${f(cx + 2)},${f(my + 4)} ${f(cx + 6)},${f(my - 2)}" stroke-width="2.2"/>`;
+      case 'sleepy': return L(cx - ex - 3, ey + 1, cx - ex + 3, ey + 1, 2) + L(cx + ex - 3, ey + 1, cx + ex + 3, ey + 1, 2) + `<ellipse cx="${f(cx)}" cy="${f(my + 1)}" rx="2.5" ry="2" stroke-width="1.8"/>`;
+      case 'love': {
+        const h = (x) => `<path d="M${f(x)},${f(ey + 3)} l-3.6,-3.6 a2,2 0 0 1 3.6,-2.6 a2,2 0 0 1 3.6,2.6 z" fill="#e0245e" stroke="#e0245e" stroke-width="1"/>`;
+        return h(cx - ex) + h(cx + ex) + smile(6, 5);
+      }
+      case 'smirk': return eyes() + `<path d="M${f(cx - 5)},${f(my + 1)} Q${f(cx + 2)},${f(my + 3)} ${f(cx + 6)},${f(my - 3)}" stroke-width="2.4"/>`;
+      case 'dizzy': {
+        const x = (x0) => L(x0 - 3, ey - 3, x0 + 3, ey + 3, 2) + L(x0 - 3, ey + 3, x0 + 3, ey - 3, 2);
+        return x(cx - ex) + x(cx + ex) + `<path d="M${f(cx - 6)},${f(my + 1)} q3,-4 6,0 q3,4 6,0" stroke-width="2"/>`;
+      }
+      default: return eyes() + smile(6, 5);
+    }
+  }
+
+  // ---------------------------------------------------------------- hand items
+  function handItem(kind, hand, stroke, side) {
+    const [x, y] = hand.h, a = hand.a;
+    const T = `translate(${f(x)},${f(y)})`;
+    const along = inner => `<g transform="${T} rotate(${f(-a)})">${inner}</g>`;
+    const up = inner => `<g transform="${T}">${inner}</g>`;
+    switch (kind) {
+      case 'sword': return along(`<path d="M-2.5,6 L-2.5,52 L0,58 L2.5,52 L2.5,6 Z" fill="#e8eef3" stroke-width="2"/><line x1="-9" y1="5" x2="9" y2="5" stroke-width="3.2"/><line x1="0" y1="-6" x2="0" y2="5" stroke-width="3.2"/><circle cx="0" cy="-8" r="2.5" fill="${stroke}"/>`);
+      case 'cutlass': return along(`<path d="M-2,6 L-3,40 Q2,56 9,50 Q4,38 3,6 Z" fill="#e8eef3" stroke-width="2"/><path d="M-8,5 Q0,-8 9,5" stroke-width="2.4"/><line x1="0" y1="-6" x2="0" y2="5" stroke-width="3.2"/>`);
+      case 'shield': return up(`<path d="M-17,-22 L17,-22 L17,0 Q17,18 0,26 Q-17,18 -17,0 Z" fill="${PAPER}" stroke-width="3"/><path d="M0,-18 L0,20 M-13,-6 L13,-6" stroke-width="2.2"/>`);
+      case 'staff': return up(`<line x1="0" y1="-78" x2="0" y2="62" stroke-width="3.2"/><path d="M0,-78 q-10,-4 -8,-14 q4,-8 11,-3 q4,5 -2,8" stroke-width="3"/>`);
+      case 'scepter': return up(`<line x1="0" y1="-34" x2="0" y2="18" stroke-width="3.2"/><circle cx="0" cy="-39" r="5" fill="${PAPER}" stroke-width="2.4"/><line x1="0" y1="-50" x2="0" y2="-44" stroke-width="2"/><line x1="-3" y1="-47" x2="3" y2="-47" stroke-width="2"/>`);
+      case 'spear': return up(`<line x1="0" y1="-92" x2="0" y2="70" stroke-width="3"/><path d="M0,-108 L-5,-92 L5,-92 Z" fill="${PAPER}" stroke-width="2.4"/>`);
+      case 'wand': return along(`<line x1="0" y1="0" x2="0" y2="24" stroke-width="2.6"/><path d="M0,26 l2,5 5,0 -4,3 2,5 -5,-3 -5,3 2,-5 -4,-3 5,0z" fill="#ffd23c" stroke-width="1.4"/>`);
+      case 'bag': return up(`<path d="M-7,2 Q0,-6 7,2" stroke-width="2.2"/><path d="M-11,2 L11,2 L9,20 L-9,20 Z" fill="${PAPER}" stroke-width="2.4"/>`);
+      case 'briefcase': return up(`<path d="M-5,2 v-4 h10 v4" stroke-width="2.2"/><rect x="-15" y="2" width="30" height="20" rx="2" fill="${PAPER}" stroke-width="2.4"/><line x1="-15" y1="10" x2="15" y2="10" stroke-width="1.6"/>`);
+      case 'flower': return up(`<path d="M0,6 Q-3,-10 0,-24" stroke="#2d8a3e" stroke-width="2.2"/><path d="M0,-12 q6,-6 9,-2 q-5,4 -9,2" fill="#6cc070" stroke="#2d8a3e" stroke-width="1.2"/>${[0, 72, 144, 216, 288].map(r => `<ellipse cx="0" cy="-30" rx="3.2" ry="5.5" transform="rotate(${r} 0 -24)" fill="#ff7aa8" stroke-width="1.4"/>`).join('')}<circle cx="0" cy="-24" r="3" fill="#ffd23c" stroke-width="1.2"/>`);
+      case 'book': return up(`<path d="M-14,-6 L0,-2 L14,-6 L14,12 L0,16 L-14,12 Z" fill="${PAPER}" stroke-width="2.2"/><line x1="0" y1="-2" x2="0" y2="16" stroke-width="1.6"/>`);
+      case 'cup': return up(`<path d="M-6,-10 L6,-10 L5,4 L-5,4 Z" fill="${PAPER}" stroke-width="2.2"/><path d="M6,-7 q5,0 4,4 q-1,3 -5,2" stroke-width="1.8"/><path d="M-2,-14 q2,-3 0,-6 M2,-14 q2,-3 0,-6" stroke-width="1.2"/>`);
+      case 'phone': return up(`<rect x="-4" y="-12" width="8" height="15" rx="1.5" fill="${PAPER}" stroke-width="2"/>`);
+      case 'umbrella': return up(`<line x1="0" y1="8" x2="0" y2="-56" stroke-width="2.4"/><path d="M0,8 q0,5 -5,4" stroke-width="2.4"/><path d="M-34,-50 Q0,-88 34,-50 Q25,-56 17,-50 Q9,-57 0,-50 Q-9,-57 -17,-50 Q-25,-56 -34,-50 Z" fill="#ff6b6b" stroke-width="2.4"/>`);
+      case 'sign': return up(`<line x1="0" y1="10" x2="0" y2="-48" stroke-width="3"/><rect x="-30" y="-82" width="60" height="36" rx="2" fill="${PAPER}" stroke-width="2.6"/>`);
+      case 'balloon': return up(`<path d="M0,0 q-6,-20 0,-40 q6,-12 0,-22" stroke-width="1.4"/><ellipse cx="0" cy="-76" rx="13" ry="16" fill="#ff5a5a" stroke-width="2.2"/><path d="M-2,-60 l2,3 2,-3z" fill="#ff5a5a" stroke-width="1.4"/>`);
+      case 'torch': return up(`<path d="M-3,10 L-4,-22 L4,-22 L3,10 Z" fill="#b07a4a" stroke-width="2"/><path d="M-6,-22 Q-9,-34 0,-46 Q2,-36 6,-38 Q10,-30 6,-22 Z" fill="#ffa53c" stroke="#e05a00" stroke-width="2"/>`);
+      case 'magnifier': return along(`<line x1="0" y1="0" x2="0" y2="14" stroke-width="3.2"/><circle cx="0" cy="23" r="9" fill="#e6f3ff" stroke-width="2.6"/>`);
+      case 'flag': return up(`<line x1="0" y1="12" x2="0" y2="-70" stroke-width="2.6"/><path d="M0,-70 Q14,-76 28,-68 Q20,-60 28,-50 Q14,-56 0,-50 Z" fill="#4a90e2" stroke-width="2.2"/>`);
+      case 'pan': return along(`<line x1="0" y1="0" x2="0" y2="18" stroke-width="3.4"/><ellipse cx="0" cy="30" rx="11" ry="12" fill="#555" stroke-width="2.4"/>`);
+      case 'ball': return up(`<circle cx="0" cy="-10" r="10" fill="#ff9f43" stroke-width="2.2"/><path d="M-10,-10 h20 M0,-20 v20" stroke-width="1.4"/>`);
+      case 'letter': return up(`<rect x="-12" y="-12" width="24" height="16" fill="${PAPER}" stroke-width="2"/><path d="M-12,-12 L0,-3 L12,-12" stroke-width="1.6"/>`);
+      default: return '';
+    }
+  }
+
+  // ---------------------------------------------------------------- fx
+  function effects(list, s, r, stroke, flipX) {
+    if (!list || !list.length) return '';
+    const [hx, hy] = s.headC;
+    const txt = (x, y, t, size, fill = stroke, rot = 0) =>
+      `<g transform="translate(${f(x)},${f(y)}) scale(${flipX ? -1 : 1},1) rotate(${rot})"><text x="0" y="0" text-anchor="middle" font-family="Comic Sans MS, Segoe Print, cursive" font-weight="bold" font-size="${size}" fill="${fill}" stroke="none">${t}</text></g>`;
+    let out = '';
+    for (const fx of list) {
+      switch (fx) {
+        case 'speed': {
+          const bx = Math.min(s.hip[0], s.neck[0]) - 26;
+          [[-20, 0], [-5, 16], [10, 8], [25, 22], [-35, 12]].forEach(([dy, dl], i) => {
+            const y = s.hip[1] - 10 + dy * 1.1;
+            out += `<line x1="${f(bx - dl)}" y1="${f(y)}" x2="${f(bx - 38 - dl - i * 4)}" y2="${f(y)}" stroke-width="2.2"/>`;
+          });
+          break;
+        }
+        case 'sweat':
+          [[r + 7, -r * 0.2, 0.9], [r + 2, -r - 2, 0.75], [-r - 6, -r * 0.4, 0.7]].forEach(([dx, dy, k]) => {
+            out += `<path transform="translate(${f(hx + dx)},${f(hy + dy)}) scale(${k})" d="M0,-6 Q5,2 0,5 Q-5,2 0,-6 Z" fill="#9fd4ff" stroke-width="1.6"/>`;
+          });
+          break;
+        case 'anger': {
+          const x = hx + r + 8, y = hy - r - 4;
+          out += `<g transform="translate(${f(x)},${f(y)})" stroke="#d62828" stroke-width="2.6"><path d="M-7,-2 q5,0 5,-5 M2,-7 q0,5 5,5 M7,2 q-5,0 -5,5 M-2,7 q0,-5 -5,-5"/></g>`;
+          break;
+        }
+        case 'steam':
+          [[-1, hx - r - 14], [1, hx + r + 14]].forEach(([d, x]) => {
+            const y = hy - r - 6;
+            out += `<path d="M${f(x)},${f(y)} q-6,-2 -4,-8 q2,-6 8,-4 q4,-6 10,-1 q5,4 0,9 q-2,6 -8,4 q-6,3 -6,0 z" transform="scale(1,1)" fill="${PAPER}" stroke-width="2"/>`;
+            out += `<path d="M${f(x - d * 4)},${f(y + 10)} l${-d * 6},6" stroke-width="2"/>`;
+          });
+          break;
+        case 'shock':
+          for (let i = 0; i < 7; i++) {
+            const ang = -150 + i * 20 + 90; // around top
+            const a = rad(ang - 90 - 90);
+            const x1 = hx + Math.cos(a) * (r + 6), y1 = hy + Math.sin(a) * (r + 6);
+            const x2 = hx + Math.cos(a) * (r + 14), y2 = hy + Math.sin(a) * (r + 14);
+            out += `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke-width="2.2"/>`;
+          }
+          break;
+        case 'question': out += txt(hx + r + 10, hy - r + 2, '?', 26); break;
+        case 'exclaim': out += txt(hx + r + 12, hy - r, '!?', 24); break;
+        case 'love':
+          [[r + 10, -r - 4, 1], [r + 20, -r - 18, 0.7], [-r - 10, -r - 10, 0.8]].forEach(([dx, dy, k]) => {
+            out += `<path transform="translate(${f(hx + dx)},${f(hy + dy)}) scale(${k})" d="M0,6 l-6,-6 a3.4,3.4 0 0 1 6,-4.4 a3.4,3.4 0 0 1 6,4.4 z" fill="#ff4d7d" stroke="#c9184a" stroke-width="1.4"/>`;
+          });
+          break;
+        case 'zzz': out += txt(hx + r + 8, hy - r + 2, 'z', 14, stroke, -10) + txt(hx + r + 18, hy - r - 10, 'z', 18, stroke, -10) + txt(hx + r + 30, hy - r - 24, 'Z', 22, stroke, -10); break;
+        case 'sparkle':
+          [[-r - 12, -r, 1], [r + 12, -r - 6, 1.2], [r + 4, -r - 22, 0.7]].forEach(([dx, dy, k]) => {
+            out += `<path transform="translate(${f(hx + dx)},${f(hy + dy)}) scale(${k})" d="M0,-8 Q1,-1 8,0 Q1,1 0,8 Q-1,1 -8,0 Q-1,-1 0,-8 Z" fill="#ffd23c" stroke-width="1.4"/>`;
+          });
+          break;
+        case 'dizzy':
+          out += `<ellipse cx="${f(hx)}" cy="${f(hy - r - 6)}" rx="${f(r + 8)}" ry="5" stroke-width="1.6" stroke-dasharray="3 3"/>`;
+          [[-r, -r - 6], [r - 2, -r - 8], [0, -r - 1]].forEach(([dx, dy]) => {
+            out += `<path transform="translate(${f(hx + dx)},${f(hy + dy)}) scale(0.7)" d="M0,-8 l2.4,5 5.6,.8 -4,3.9 1,5.5 -5,-2.6 -5,2.6 1,-5.5 -4,-3.9 5.6,-.8z" fill="#ffd23c" stroke-width="1.6"/>`;
+          });
+          break;
+        case 'bulb': {
+          const x = hx + r + 14, y = hy - r - 14;
+          out += `<g transform="translate(${f(x)},${f(y)})"><path d="M-7,4 a9,9 0 1 1 14,0 l-2,5 h-10 z" fill="#fff36b" stroke-width="2"/><path d="M-4,12 h8 M-3,15 h6" stroke-width="1.8"/>`
+            + [[-16, -6], [-12, -16], [0, -21], [12, -16], [16, -6]].map(([a, b]) => `<line x1="${a * 0.8}" y1="${b * 0.8}" x2="${a}" y2="${b}" stroke-width="1.8"/>`).join('') + `</g>`;
+          break;
+        }
+      }
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------------- main renderer
+  function drawFigure(it) {
+    const ch = CHARACTERS[it.char] || CHARACTERS.boy;
+    const pose = POSES[it.pose] || POSES.stand;
+    const L = PROPORTIONS[ch.prop];
+    const s = skeleton(pose, L);
+    const stroke = it.color || '#1d1d1d';
+    const lw = it.lw || 4;
+    const cloth = it.cloth || PAPER;
+    const side = pose.view === 'side';
+    const r = L.head;
+    const [hx, hy] = s.headC;
+    let back = '', body = '', front = '', head = '', over = '';
+
+    const line = (pts, w = lw) => `<polyline points="${pts.map(P).join(' ')}" stroke-width="${w}"/>`;
+    const tdir = (a) => vec(180 - s.lean, a); // along torso upward
+    const perp = (a) => vec(90 - s.lean, a);  // perpendicular to torso (forward)
+
+    // --- robe / cape (behind)
+    if (ch.robe === 'cape') {
+      const top = s.shoulder;
+      const bl = [s.hip[0] - 34 + s.lean * 0.4, GROUND - GROUND + Math.max(s.ll.f[1], s.rl.f[1]) - 4];
+      const br = [s.hip[0] + 30 + s.lean * 0.6, bl[1] + 2];
+      back += `<path d="M${P(add(top, perp(-10)))} Q${P([bl[0] + 6, (top[1] + bl[1]) / 2])} ${P(bl)} Q${P([(bl[0] + br[0]) / 2, bl[1] + 6])} ${P(br)} Q${P([br[0] - 8, (top[1] + br[1]) / 2])} ${P(add(top, perp(10)))} Z" fill="${it.cloth || '#c0392b'}" stroke-width="${lw * 0.8}"/>`;
+      back += `<path d="M${P(add(s.neck, perp(-12)))} Q${P(add(s.neck, [0, 6]))} ${P(add(s.neck, perp(12)))}" stroke-width="${lw * 1.6}" stroke-dasharray="1 5"/>`;
+    }
+
+    // --- legs
+    const foot = (leg, dir) => { const d = side ? 1 : dir; return `<line x1="${f(leg.f[0])}" y1="${f(leg.f[1])}" x2="${f(leg.f[0] + d * 7)}" y2="${f(leg.f[1])}" stroke-width="${lw}"/>`; };
+    let legs = line([s.hip, s.ll.k, s.ll.f]) + line([s.hip, s.rl.k, s.rl.f]) + foot(s.ll, -1) + foot(s.rl, 1);
+    if (ch.armor) legs += line([s.hip, s.ll.k, s.ll.f], lw + 5).replace('<polyline', `<polyline opacity="0.18"`) + `<circle cx="${f(s.ll.k[0])}" cy="${f(s.ll.k[1])}" r="4" fill="${PAPER}" stroke-width="2"/><circle cx="${f(s.rl.k[0])}" cy="${f(s.rl.k[1])}" r="4" fill="${PAPER}" stroke-width="2"/>`;
+    if (ch.robot) legs = line([s.hip, s.ll.k, s.ll.f], lw + 3) + line([s.hip, s.rl.k, s.rl.f], lw + 3) + `<rect x="${f(s.ll.f[0] - 6)}" y="${f(s.ll.f[1] - 5)}" width="14" height="5" fill="${stroke}"/><rect x="${f(s.rl.f[0] - 6)}" y="${f(s.rl.f[1] - 5)}" width="14" height="5" fill="${stroke}"/>`;
+    body += legs;
+
+    // --- torso
+    const torsoLine = line([s.hip, s.neck]);
+    if (ch.robe === 'long') {
+      const g = Math.max(s.ll.f[1], s.rl.f[1]) - 2;
+      const spread = Math.max(22, Math.abs(s.ll.f[0] - s.rl.f[0]) / 2 + 12);
+      const cxr = (s.ll.f[0] + s.rl.f[0]) / 2;
+      body += `<path d="M${P(add(s.neck, perp(-7)))} L${f(cxr - spread)},${f(g)} Q${f(cxr)},${f(g + 5)} ${f(cxr + spread)},${f(g)} L${P(add(s.neck, perp(7)))} Z" fill="${it.cloth || '#6c5ce7'}" stroke-width="${lw * 0.8}"/>`;
+      body += `<path d="M${f(cxr - spread * 0.5)},${f(g - 20)} l3,-5 3,5 M${f(cxr + spread * 0.4)},${f(g - 50)} l3,-5 3,5" stroke-width="1.6"/>`;
+    } else if (ch.dress) {
+      const top = add(s.neck, tdir(-10));
+      const hemY = s.hip[1] + 20;
+      const hx0 = s.hip[0] + s.lean * 0.2;
+      body += torsoLine + `<path d="M${P(add(top, perp(-5)))} L${f(hx0 - 20)},${f(hemY)} Q${f(hx0)},${f(hemY + 4)} ${f(hx0 + 20)},${f(hemY)} L${P(add(top, perp(5)))} Z" fill="${cloth}" stroke-width="${lw * 0.8}"/>`;
+    } else if (ch.armor) {
+      const a = add(s.neck, tdir(-6)), b = add(s.hip, tdir(-2));
+      body += `<path d="M${P(add(a, perp(-12)))} L${P(add(a, perp(12)))} L${P(add(b, perp(10)))} L${P(add(b, perp(-10)))} Z" fill="${it.cloth || '#dfe6e9'}" stroke-width="${lw * 0.8}"/>`
+        + `<line x1="${P(add(b, perp(-10))).split(',')[0]}" y1="${P(add(b, perp(-10))).split(',')[1]}" x2="${P(add(b, perp(10))).split(',')[0]}" y2="${P(add(b, perp(10))).split(',')[1]}" stroke-width="3"/>`
+        + `<path d="M${P(add(add(a, tdir(-10)), perp(-6)))} L${P(add(add(a, tdir(-10)), perp(6)))}" stroke-width="2"/>`;
+    } else if (ch.robot) {
+      const a = add(s.neck, tdir(-4)), b = add(s.hip, tdir(2));
+      body += `<path d="M${P(add(a, perp(-13)))} L${P(add(a, perp(13)))} L${P(add(b, perp(13)))} L${P(add(b, perp(-13)))} Z" fill="${it.cloth || '#dfe6e9'}" stroke-width="${lw * 0.8}"/>`
+        + `<circle cx="${f((a[0] + b[0]) / 2)}" cy="${f((a[1] + b[1]) / 2)}" r="4" fill="#ff4757" stroke-width="1.6"/>`;
+    } else {
+      body += torsoLine;
+      if (ch.coat) {
+        const a = add(s.neck, tdir(-4)), b = add(s.hip, tdir(-18));
+        body += `<path d="M${P(add(a, perp(-6)))} L${P(add(b, perp(-13)))} L${P(add(b, perp(13)))} L${P(add(a, perp(6)))} Z" fill="${it.cloth || PAPER}" stroke-width="${lw * 0.7}"/>` + torsoLine.replace(`stroke-width="${lw}"`, `stroke-width="1.5"`);
+      }
+      if (ch.apron) {
+        const a = add(s.neck, tdir(-14)), b = add(s.hip, tdir(-16));
+        body += `<path d="M${P(add(a, perp(-7)))} L${P(add(a, perp(7)))} L${P(add(b, perp(11)))} L${P(add(b, perp(-11)))} Z" fill="${it.cloth || PAPER}" stroke-width="${lw * 0.7}"/>`;
+      }
+    }
+    if (ch.badge) { const b = add(s.neck, tdir(-14)); const c = add(b, perp(5)); body += `<path transform="translate(${P(c)}) scale(0.55)" d="M0,-8 l2.4,5 5.6,.8 -4,3.9 1,5.5 -5,-2.6 -5,2.6 1,-5.5 -4,-3.9 5.6,-.8z" fill="#ffd23c" stroke-width="2.4"/>`; }
+    if (ch.belt) { const b = add(s.hip, tdir(4)); body += `<line x1="${f(add(b, perp(-7))[0])}" y1="${f(add(b, perp(-7))[1])}" x2="${f(add(b, perp(7))[0])}" y2="${f(add(b, perp(7))[1])}" stroke-width="${lw + 2}"/>`; }
+    if (ch.mirror) { const b = add(s.neck, tdir(-9)); body += `<path d="M${P(add(b, perp(-5)))} Q${P(add(add(b, tdir(-14)), perp(0)))} ${P(add(b, perp(5)))}" stroke-width="1.6"/><circle cx="${f(add(add(b, tdir(-15)), perp(0))[0])}" cy="${f(add(add(b, tdir(-15)), perp(0))[1])}" r="3" fill="#ccc" stroke-width="1.4"/>`; }
+
+    // --- hand items (left hand item behind the body for side views)
+    const hL = it.handL !== undefined ? it.handL : (ch.handL || 'none');
+    const hR = it.handR !== undefined ? it.handR : (ch.handR || 'none');
+    if (hL && hL !== 'none' && hL !== 'shield') back += handItem(hL, s.la, stroke, side);
+
+    // --- arms
+    const armW = ch.robot ? lw + 3 : lw;
+    let arms = line([s.shoulder, s.la.e, s.la.h], armW) + line([s.shoulder, s.ra.e, s.ra.h], armW);
+    if (ch.armor) arms += `<circle cx="${f(s.shoulder[0])}" cy="${f(s.shoulder[1])}" r="6" fill="${it.cloth || '#dfe6e9'}" stroke-width="2.2"/>`;
+    if (ch.robe === 'long') arms += `<path d="M${P(add(s.la.h, vec(s.la.a + 180, 8)))} l${f(vec(s.la.a + 90, 5)[0])},${f(vec(s.la.a + 90, 5)[1])}" stroke-width="3"/>`;
+    front += arms;
+    if (hR && hR !== 'none' && hR !== 'shield') front += handItem(hR, s.ra, stroke, side);
+    if (hL === 'shield') front += handItem('shield', s.la, stroke, side);
+    if (hR === 'shield') front += handItem('shield', s.ra, stroke, side);
+
+    // --- head
+    const baseR = r;
+    if (ch.hair === 'long') {
+      head += `<path d="M${f(hx - r - 2)},${f(hy - 2)} Q${f(hx - r - 6)},${f(hy + r + 10)} ${f(hx - r + 2)},${f(hy + r + 14)} L${f(hx + r - 2)},${f(hy + r + 14)} Q${f(hx + r + 6)},${f(hy + r + 10)} ${f(hx + r + 2)},${f(hy - 2)} Z" fill="${it.hairColor || stroke}" fill-opacity="${it.hairColor ? 1 : 0.0}" stroke-width="${lw * 0.7}"/>`;
+    }
+    if (ch.robot) {
+      head += `<rect x="${f(hx - r)}" y="${f(hy - r)}" width="${f(2 * r)}" height="${f(2 * r)}" rx="4" fill="${PAPER}" stroke-width="${lw}"/><line x1="${f(hx)}" y1="${f(hy - r)}" x2="${f(hx)}" y2="${f(hy - r - 9)}" stroke-width="2.4"/><circle cx="${f(hx)}" cy="${f(hy - r - 11)}" r="3" fill="#ff4757" stroke-width="1.6"/>`;
+    } else {
+      head += `<circle cx="${f(hx)}" cy="${f(hy)}" r="${baseR}" fill="${PAPER}" stroke-width="${lw}"/>`;
+    }
+    head += face(it.expr || 'happy', s.headC, r, side, stroke, it.flipX);
+
+    // hair
+    if (ch.hair === 'tuft') head += `<path d="M${f(hx - 5)},${f(hy - r + 1)} l1,-7 M${f(hx)},${f(hy - r)} l2,-8 M${f(hx + 5)},${f(hy - r + 1)} l4,-6" stroke-width="2.4"/>`;
+    if (ch.hair === 'curl') head += `<path d="M${f(hx)},${f(hy - r)} q-4,-6 1,-8 q5,0 2,4" stroke-width="2"/>`;
+    if (ch.hair === 'pigtails' || ch.hair === 'long') {
+      head += `<path d="M${f(hx - r)},${f(hy - 2)} Q${f(hx - r + 2)},${f(hy - r - 5)} ${f(hx)},${f(hy - r - 1)} Q${f(hx + r - 2)},${f(hy - r - 5)} ${f(hx + r)},${f(hy - 2)} Q${f(hx + 6)},${f(hy - r + 5)} ${f(hx - 2)},${f(hy - r + 4)} Q${f(hx - r + 4)},${f(hy - r + 5)} ${f(hx - r)},${f(hy - 2)} Z" fill="${it.hairColor || PAPER}" stroke-width="2"/>`;
+      if (ch.hair === 'pigtails') {
+        head += `<path d="M${f(hx - r + 1)},${f(hy - 6)} q-12,-2 -12,10 q6,-2 10,-4" fill="${it.hairColor || stroke}" stroke-width="2"/><path d="M${f(hx + r - 1)},${f(hy - 6)} q12,-2 12,10 q-6,-2 -10,-4" fill="${it.hairColor || stroke}" stroke-width="2"/>`;
+      }
+    }
+    if (ch.patch) head += `<path d="M${f(hx - r + 2)},${f(hy - 9)} L${f(hx + r - 1)},${f(hy - 3)}" stroke-width="1.6"/><ellipse cx="${f(hx + (side ? r * 0.3 : 0) + r * 0.36)}" cy="${f(hy - r * 0.18)}" rx="4.5" ry="4" fill="${stroke}"/>`;
+
+    // beard
+    if (ch.beard === 'long') head += `<path d="M${f(hx - r + 3)},${f(hy + 4)} Q${f(hx - 8)},${f(hy + r + 30)} ${f(hx + 4)},${f(hy + r + 38)} Q${f(hx + 4)},${f(hy + r + 20)} ${f(hx + r - 2)},${f(hy + 4)} Q${f(hx)},${f(hy + r - 2)} ${f(hx - r + 3)},${f(hy + 4)} Z" fill="${PAPER}" stroke-width="2.4"/><path d="M${f(hx - 7)},${f(hy + 6)} q7,-4 14,0" stroke-width="2"/>`;
+    if (ch.beard === 'short') head += `<path d="M${f(hx - r + 2)},${f(hy + 3)} Q${f(hx - r + 4)},${f(hy + r + 8)} ${f(hx + 2)},${f(hy + r + 6)} Q${f(hx + r)},${f(hy + r + 4)} ${f(hx + r - 1)},${f(hy + 3)} Q${f(hx)},${f(hy + r - 3)} ${f(hx - r + 2)},${f(hy + 3)} Z" fill="${it.hairColor || '#555'}" stroke-width="2"/>`;
+
+    // hats
+    const hatT = `translate(${f(hx)},${f(hy)}) rotate(${f(s.lean * 0.4)})`;
+    const hat = inner => `<g transform="${hatT}">${inner}</g>`;
+    switch (ch.hat) {
+      case 'fedora': over += hat(`<path d="M-24,-${r - 3} Q0,-${r + 3} 24,-${r - 3}" stroke-width="3" fill="none"/><path d="M-14,-${r - 1} L-12,-${r + 14} Q0,-${r + 20} 12,-${r + 14} L14,-${r - 1} Z" fill="${it.cloth && ch.hat === 'fedora' ? it.cloth : PAPER}" stroke-width="2.6"/><path d="M-13,-${r + 4} L13,-${r + 4}" stroke-width="3"/>`); break;
+      case 'police': over += hat(`<path d="M-16,-${r - 6} L-18,-${r + 8} Q0,-${r + 16} 18,-${r + 8} L16,-${r - 6} Z" fill="#2f5aa8" stroke-width="2.6"/><path d="M-4,-${r - 6} Q10,-${r - 10} 24,-${r - 4}" stroke-width="3.4"/><path transform="translate(0,-${r + 3}) scale(0.5)" d="M0,-8 l2.4,5 5.6,.8 -4,3.9 1,5.5 -5,-2.6 -5,2.6 1,-5.5 -4,-3.9 5.6,-.8z" fill="#ffd23c" stroke-width="2.4"/>`); break;
+      case 'crown': over += hat(`<path d="M-13,-${r - 4} L-15,-${r + 14} L-7,-${r + 5} L0,-${r + 16} L7,-${r + 5} L15,-${r + 14} L13,-${r - 4} Z" fill="#ffd23c" stroke-width="2.4"/><circle cx="0" cy="-${r + 1}" r="2" fill="#e74c3c" stroke-width="1"/>`); break;
+      case 'tiara': over += hat(`<path d="M-11,-${r - 2} L-8,-${r + 6} L-4,-${r + 1} L0,-${r + 9} L4,-${r + 1} L8,-${r + 6} L11,-${r - 2} Z" fill="#ffd23c" stroke-width="2"/>`); break;
+      case 'wizard': over += hat(`<path d="M-26,-${r - 4} Q0,-${r + 2} 26,-${r - 4}" stroke-width="3.2"/><path d="M-15,-${r - 2} Q-4,-${r + 26} 4,-${r + 46} Q14,-${r + 50} 18,-${r + 40} Q10,-${r + 36} 15,-${r - 2} Z" fill="${it.cloth || '#6c5ce7'}" stroke-width="2.6"/><path transform="translate(1,-${r + 16}) scale(0.6)" d="M0,-8 l2.4,5 5.6,.8 -4,3.9 1,5.5 -5,-2.6 -5,2.6 1,-5.5 -4,-3.9 5.6,-.8z" fill="#ffd23c" stroke-width="2.4"/>`); break;
+      case 'chef': over += hat(`<path d="M-12,-${r - 3} L-12,-${r + 8} Q-22,-${r + 14} -14,-${r + 22} Q-8,-${r + 32} 0,-${r + 25} Q8,-${r + 32} 14,-${r + 22} Q22,-${r + 14} 12,-${r + 8} L12,-${r - 3} Z" fill="${PAPER}" stroke-width="2.4"/><line x1="-12" y1="-${r + 2}" x2="12" y2="-${r + 2}" stroke-width="2"/>`); break;
+      case 'pirate': over += hat(`<path d="M-26,-${r - 6} Q-20,-${r + 20} 0,-${r + 12} Q20,-${r + 20} 26,-${r - 6} Q0,-${r + 2} -26,-${r - 6} Z" fill="#2d3436" stroke-width="2.4"/><circle cx="0" cy="-${r + 2}" r="3.2" fill="${PAPER}" stroke="${PAPER}" stroke-width="0"/>`); break;
+      case 'helmet': over += hat(`<path d="M-${r + 2},4 Q-${r + 3},-${r + 4} 0,-${r + 3} Q${r + 3},-${r + 4} ${r + 2},4 L${r + 2},-3 L-${r + 2},-3 Z" fill="${it.cloth || '#dfe6e9'}" stroke-width="2.6"/><rect x="-${r + 2}" y="-3" width="${2 * r + 4}" height="${f(r * 0.45)}" fill="${stroke}" stroke-width="1"/><circle cx="${side ? 4 : -6}" cy="${f(-3 + r * 0.22)}" r="1.8" fill="${PAPER}" stroke="none"/><circle cx="${side ? 12 : 6}" cy="${f(-3 + r * 0.22)}" r="1.8" fill="${PAPER}" stroke="none"/><path d="M0,-${r + 3} Q-10,-${r + 18} -22,-${r + 10} Q-12,-${r + 12} -8,-${r + 2}" fill="#e74c3c" stroke-width="2"/><line x1="0" y1="-${r + 3}" x2="0" y2="-4" stroke-width="1.6"/>`); break;
+    }
+
+    const fxList = (it.fx || []).slice();
+    const fxSvg = effects(fxList, s, r, stroke, it.flipX);
+
+    const scale = ch.scale || 1;
+    const inner = back + body + front + head + over + fxSvg;
+    return `<g transform="translate(${NW / 2},${GROUND}) scale(${scale}) translate(0,0)" fill="none" stroke="${stroke}" stroke-linecap="round" stroke-linejoin="round">${inner}</g>`;
+  }
+
+  // head centre in native box coordinates (used for face thumbnails)
+  function headAt(char, pose) {
+    const ch = CHARACTERS[char] || CHARACTERS.boy;
+    const s = skeleton(POSES[pose] || POSES.stand, PROPORTIONS[ch.prop]);
+    const k = ch.scale || 1;
+    return [NW / 2 + s.headC[0] * k, GROUND + s.headC[1] * k, PROPORTIONS[ch.prop].head * k];
+  }
+  // hip position in native box coordinates (used to seat figures on chairs)
+  function hipAt(char, pose) {
+    const ch = CHARACTERS[char] || CHARACTERS.boy;
+    const s = skeleton(POSES[pose] || POSES.stand, PROPORTIONS[ch.prop]);
+    const k = ch.scale || 1;
+    return [NW / 2 + s.hip[0] * k, GROUND + s.hip[1] * k];
+  }
+
+  window.FIG = { NW, NH, GROUND, POSES, CHARACTERS, EXPRESSIONS, FX, HAND_ITEMS, draw: drawFigure, headAt, hipAt };
+})();
+
+</script>
+<script>
+/* StickStudio – props/objects and panel scenes.
+ * Objects are drawn in a native box [0,w]x[0,h] with the ground at the bottom.
+ * Scenes are drawn in a 400x300 box and scaled to cover the panel.
+ */
+(function () {
+  const W = '#ffffff';
+  const star = (x, y, k = 1, fill = '#ffd23c') => `<path transform="translate(${x},${y}) scale(${k})" d="M0,-8 l2.4,5 5.6,.8 -4,3.9 1,5.5 -5,-2.6 -5,2.6 1,-5.5 -4,-3.9 5.6,-.8z" fill="${fill}"/>`;
+  const tree = (x, y, k = 1) => `<g transform="translate(${x},${y}) scale(${k})"><path d="M-8,0 L-6,-60 L6,-60 L8,0" fill="#b07a4a"/><path d="M-6,-45 l-12,-12 M6,-52 l12,-10"/><path d="M0,-150 q-30,0 -32,24 q-26,4 -20,30 q-4,26 24,24 q10,12 28,4 q22,10 32,-8 q26,-4 20,-30 q8,-24 -20,-28 q-6,-18 -32,-16z" fill="#8fd18a"/></g>`;
+  const pine = (x, y, k = 1) => `<g transform="translate(${x},${y}) scale(${k})"><rect x="-6" y="-22" width="12" height="22" fill="#b07a4a"/><path d="M0,-150 L-28,-100 L-14,-100 L-38,-60 L-20,-60 L-46,-22 L46,-22 L20,-60 L38,-60 L14,-100 L28,-100 Z" fill="#5fb870"/></g>`;
+  const cloud = (x, y, k = 1) => `<path transform="translate(${x},${y}) scale(${k})" d="M-40,0 q-14,0 -12,-14 q2,-14 18,-12 q6,-18 26,-14 q14,-12 30,2 q20,-4 22,14 q14,4 8,18 z" fill="${W}"/>`;
+  const house = (x, y, k = 1) => `<g transform="translate(${x},${y}) scale(${k})"><rect x="-70" y="-110" width="140" height="110" fill="${W}"/><path d="M-84,-106 L0,-180 L84,-106 Z" fill="#e17055"/><rect x="-16" y="-60" width="32" height="60" fill="#fdcb6e"/><circle cx="8" cy="-30" r="2.5" fill="#222"/><rect x="-56" y="-92" width="30" height="28" fill="#dff1ff"/><path d="M-41,-92 v28 M-56,-78 h30"/><rect x="26" y="-92" width="30" height="28" fill="#dff1ff"/><path d="M41,-92 v28 M26,-78 h30"/><rect x="36" y="-170" width="16" height="36" fill="${W}"/></g>`;
+  const building = (x, y, w, h, fill = W) => {
+    let s = `<rect x="${x}" y="${y - h}" width="${w}" height="${h}" fill="${fill}"/>`;
+    const cols = Math.max(2, Math.floor(w / 18)), rows = Math.max(2, Math.floor((h - 20) / 24));
+    const cw = w / cols;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++)
+      s += `<rect x="${(x + c * cw + cw * 0.25).toFixed(1)}" y="${(y - h + 12 + r * 24).toFixed(1)}" width="${(cw * 0.5).toFixed(1)}" height="12" fill="#dff1ff" stroke-width="1.6"/>`;
+    return s;
+  };
+  const car = (police) => `<path d="M10,78 L10,52 Q12,44 24,42 L58,40 L82,12 Q88,6 100,6 L160,6 Q172,6 180,16 L200,40 Q214,42 214,56 L214,78 Z" fill="${police ? W : '#74b9ff'}"/>
+    <path d="M90,40 L104,16 L136,16 L136,40 Z M146,40 L146,16 L172,16 L188,40 Z" fill="#dff1ff"/>
+    <circle cx="56" cy="80" r="16" fill="${W}"/><circle cx="56" cy="80" r="6"/><circle cx="170" cy="80" r="16" fill="${W}"/><circle cx="170" cy="80" r="6"/>
+    <path d="M140,48 h14 M200,54 h10"/>` + (police ? `<rect x="112" y="-6" width="22" height="10" rx="3" fill="#ff4757"/><path d="M123,-8 v-6 M112,-10 l-5,-4 M134,-10 l5,-4" stroke-width="2"/><path transform="translate(116,60) scale(0.9)" d="M-8,-8 h16 v8 q0,8 -8,11 q-8,-3 -8,-11z" fill="#fff" stroke-width="2"/><text x="46" y="66" font-family="Arial" font-weight="bold" font-size="13" fill="#2f5aa8" stroke="none">POLICE</text>` : '');
+
+  const OBJECTS = {
+    // ---- furniture
+    chair:     { name: 'Chair', cat: 'Furniture', w: 56, h: 100, svg: () => `<path d="M8,4 L8,100 M8,66 L50,66 L50,100 M8,61 L50,61"/><path d="M8,4 Q14,0 14,8 L14,61" /><path d="M8,22 h6 M8,40 h6"/>` },
+    stool:     { name: 'Stool', cat: 'Furniture', w: 50, h: 56, svg: () => `<rect x="3" y="4" width="44" height="7" rx="3" fill="${W}"/><path d="M10,11 L4,56 M40,11 L46,56 M8,38 h34"/>` },
+    table:     { name: 'Table', cat: 'Furniture', w: 130, h: 64, svg: () => `<rect x="2" y="4" width="126" height="8" rx="2" fill="#e0b98a"/><path d="M12,12 L12,64 M118,12 L118,64"/>` },
+    desk:      { name: 'Desk + laptop', cat: 'Furniture', w: 140, h: 100, svg: () => `<path d="M40,44 L44,14 L86,14 L90,44 Z" fill="#dff1ff"/><path d="M30,44 h70" stroke-width="5"/><rect x="2" y="44" width="136" height="8" fill="#e0b98a"/><path d="M10,52 v48 M130,52 v48"/><rect x="92" y="52" width="38" height="44" fill="${W}"/><path d="M92,74 h38 M106,63 h10 M106,85 h10"/><path d="M112,30 q0,-6 6,-6 h6 v14 q0,6 -6,6 h-6z" fill="${W}" stroke-width="2"/>` },
+    sofa:      { name: 'Sofa', cat: 'Furniture', w: 170, h: 80, svg: () => `<path d="M14,50 L14,16 Q14,6 26,6 L144,6 Q156,6 156,16 L156,50" fill="#a29bfe"/><rect x="2" y="36" width="24" height="34" rx="8" fill="#a29bfe"/><rect x="144" y="36" width="24" height="34" rx="8" fill="#a29bfe"/><rect x="26" y="46" width="118" height="24" fill="#a29bfe"/><path d="M85,46 v24 M12,70 v10 M158,70 v10"/>` },
+    bed:       { name: 'Bed', cat: 'Furniture', w: 190, h: 84, svg: () => `<path d="M4,84 L4,6 M4,40 L186,40 L186,84 M186,40 L186,24"/><rect x="4" y="40" width="182" height="22" fill="${W}"/><path d="M60,40 Q120,26 186,40 L186,62 L60,62 Z" fill="#81ecec"/><ellipse cx="30" cy="32" rx="22" ry="10" fill="${W}"/>` },
+    bookshelf: { name: 'Bookshelf', cat: 'Furniture', w: 90, h: 170, svg: () => { let s = `<rect x="2" y="2" width="86" height="168" fill="#e0b98a"/>`; [42, 84, 126].forEach(y => s += `<path d="M2,${y} h86"/>`); const c = ['#e17055', '#74b9ff', '#55efc4', '#fdcb6e', '#a29bfe']; [0, 42, 84, 126].forEach((y, r) => { let x = 8; for (let i = 0; i < 5; i++) { const bw = 9 + ((i + r) % 3) * 3; s += `<rect x="${x}" y="${y + 10 + (i % 2) * 4}" width="${bw}" height="${30 - (i % 2) * 4}" fill="${c[(i + r) % 5]}" stroke-width="2"/>`; x += bw + 3; } }); return s; } },
+    tv:        { name: 'TV', cat: 'Furniture', w: 100, h: 90, svg: () => `<rect x="4" y="4" width="92" height="62" rx="4" fill="#2d3436"/><rect x="12" y="11" width="76" height="48" fill="#dff1ff" stroke-width="2"/><path d="M50,66 v10 M30,86 h40 M50,76 L30,86 M50,76 L70,86"/>` },
+    lamp:      { name: 'Floor lamp', cat: 'Furniture', w: 60, h: 170, svg: () => `<path d="M14,40 L22,4 L38,4 L46,40 Z" fill="#fdcb6e"/><path d="M30,40 V166 M14,168 h32"/>` },
+    door:      { name: 'Door', cat: 'Furniture', w: 76, h: 150, svg: () => `<rect x="4" y="2" width="68" height="148" fill="#e0b98a"/><rect x="14" y="14" width="48" height="50" fill="none" stroke-width="2"/><rect x="14" y="76" width="48" height="60" fill="none" stroke-width="2"/><circle cx="60" cy="78" r="4" fill="#ffd23c"/>` },
+    window:    { name: 'Window', cat: 'Furniture', w: 100, h: 90, svg: () => `<rect x="10" y="6" width="80" height="70" fill="#dff1ff"/><path d="M50,6 v70 M10,41 h80 M4,80 h92"/><path d="M10,6 Q24,40 10,76 M90,6 Q76,40 90,76" fill="#ff7675" stroke-width="2.4"/>` },
+    picture:   { name: 'Picture frame', cat: 'Furniture', w: 70, h: 56, svg: () => `<rect x="3" y="3" width="64" height="50" fill="${W}"/><rect x="9" y="9" width="52" height="38" fill="#dff1ff" stroke-width="2"/><path d="M11,45 L26,24 L36,36 L44,28 L59,45" stroke-width="2"/><circle cx="50" cy="18" r="4" fill="#ffd23c" stroke-width="1.6"/>` },
+    clock:     { name: 'Wall clock', cat: 'Furniture', w: 50, h: 50, svg: () => `<circle cx="25" cy="25" r="22" fill="${W}"/><path d="M25,25 V10 M25,25 L35,30"/>` },
+    plant:     { name: 'Potted plant', cat: 'Furniture', w: 50, h: 80, svg: () => `<path d="M10,50 L40,50 L36,80 L14,80 Z" fill="#e17055"/><path d="M25,50 Q10,30 4,20 Q18,24 25,42 Q24,20 26,4 Q34,22 27,44 Q36,26 48,22 Q40,38 27,50" fill="#6cc070"/>` },
+    // ---- outdoors
+    tree:      { name: 'Tree', cat: 'Outdoors', w: 110, h: 160, svg: () => tree(55, 158, 1) },
+    pine:      { name: 'Pine tree', cat: 'Outdoors', w: 96, h: 152, svg: () => pine(48, 152, 1) },
+    bush:      { name: 'Bush', cat: 'Outdoors', w: 90, h: 46, svg: () => `<path d="M4,46 q-6,-22 14,-24 q2,-18 22,-16 q10,-8 22,2 q20,-4 20,16 q14,4 4,22 z" fill="#8fd18a"/>` },
+    flowers:   { name: 'Flowers', cat: 'Outdoors', w: 80, h: 44, svg: () => [12, 32, 52, 70].map((x, i) => `<path d="M${x},44 V${16 + (i % 2) * 8}" stroke="#2d8a3e"/><circle cx="${x}" cy="${14 + (i % 2) * 8}" r="6" fill="${['#ff7aa8', '#ffd23c', '#74b9ff', '#ff7675'][i]}" stroke-width="2"/>`).join('') },
+    rock:      { name: 'Rock', cat: 'Outdoors', w: 80, h: 44, svg: () => `<path d="M4,44 Q2,20 20,12 Q34,0 54,8 Q76,14 76,44 Z" fill="#b2bec3"/><path d="M30,20 q8,-4 14,2" stroke-width="2"/>` },
+    house:     { name: 'House', cat: 'Outdoors', w: 170, h: 182, svg: () => house(85, 182, 1) },
+    building:  { name: 'Building', cat: 'Outdoors', w: 110, h: 250, svg: () => building(4, 250, 102, 246) + `<rect x="40" y="220" width="30" height="30" fill="#fdcb6e"/>` },
+    castle:    { name: 'Castle tower', cat: 'Outdoors', w: 110, h: 250, svg: () => `<path d="M10,250 V60 H24 V44 H40 V60 H48 V44 H62 V60 H70 V44 H86 V60 H100 V250 Z" fill="#dfe6e9"/><path d="M36,250 V210 Q55,188 74,210 V250" fill="#b07a4a"/><rect x="46" y="100" width="18" height="30" rx="9" fill="#2d3436"/><path d="M55,44 V8 L80,16 L55,24" fill="#e74c3c"/><path d="M20,150 h14 M70,170 h16 M30,90 h10"/>` },
+    fence:     { name: 'Fence', cat: 'Outdoors', w: 200, h: 60, svg: () => { let s = '<path d="M0,24 H200 M0,46 H200"/>'; for (let x = 8; x < 200; x += 24) s += `<path d="M${x},60 V10 L${x + 7},2 L${x + 14},10 V60 Z" fill="${W}"/>`; return s; } },
+    lamppost:  { name: 'Street lamp', cat: 'Outdoors', w: 60, h: 220, svg: () => `<path d="M30,220 V30 Q30,12 46,12"/><path d="M36,12 L56,12 L52,26 L40,26 Z" fill="#fff36b"/><path d="M18,220 h24"/>` },
+    bench:     { name: 'Park bench', cat: 'Outdoors', w: 150, h: 64, svg: () => `<path d="M6,6 H144 M6,20 H144" stroke-width="5"/><path d="M4,36 H146" stroke-width="6"/><path d="M16,36 V64 M134,36 V64 M24,6 V36 M126,6 V36"/>` },
+    signpost:  { name: 'Signpost', cat: 'Outdoors', w: 90, h: 140, svg: () => `<path d="M45,140 V20"/><path d="M8,20 H70 L84,34 L70,48 H8 Z" fill="${W}"/><path d="M82,60 H20 L6,74 L20,88 H82 Z" fill="${W}"/>` },
+    tent:      { name: 'Tent', cat: 'Outdoors', w: 160, h: 100, svg: () => `<path d="M4,100 L80,6 L156,100 Z" fill="#fab1a0"/><path d="M80,6 L60,100 M80,6 L100,100 Q82,70 80,40"/>` },
+    campfire:  { name: 'Campfire', cat: 'Outdoors', w: 70, h: 64, svg: () => `<path d="M10,62 L60,48 M10,48 L60,62" stroke-width="6"/><path d="M20,50 Q14,30 28,14 Q28,28 36,24 Q34,8 46,2 Q44,20 52,30 Q56,44 48,50 Z" fill="#ffa53c" stroke="#e05a00"/>` },
+    sun:       { name: 'Sun', cat: 'Sky', w: 80, h: 80, svg: () => `<circle cx="40" cy="40" r="18" fill="#ffd23c"/>` + Array.from({ length: 10 }, (_, i) => { const a = i * Math.PI / 5; return `<line x1="${(40 + Math.cos(a) * 25).toFixed(1)}" y1="${(40 + Math.sin(a) * 25).toFixed(1)}" x2="${(40 + Math.cos(a) * 36).toFixed(1)}" y2="${(40 + Math.sin(a) * 36).toFixed(1)}"/>`; }).join('') },
+    moon:      { name: 'Moon', cat: 'Sky', w: 60, h: 60, svg: () => `<path d="M40,6 A26,26 0 1 0 54,44 A20,20 0 1 1 40,6 Z" fill="#fff36b"/>` },
+    cloud:     { name: 'Cloud', cat: 'Sky', w: 130, h: 58, svg: () => cloud(58, 52, 1) },
+    stars:     { name: 'Stars', cat: 'Sky', w: 80, h: 60, svg: () => star(16, 16) + star(60, 12, 0.7) + star(44, 44, 1.2) },
+    rain:      { name: 'Rain cloud', cat: 'Sky', w: 130, h: 110, svg: () => cloud(58, 52, 1).replace(W, '#b2bec3') + [20, 44, 68, 92].map((x, i) => `<path d="M${x},${64 + (i % 2) * 8} l-6,16 M${x + 12},${90 - (i % 2) * 8} l-6,16" stroke="#4a90e2"/>`).join('') },
+    mountain:  { name: 'Mountains', cat: 'Sky', w: 260, h: 130, svg: () => `<path d="M0,130 L80,20 L130,80 L180,30 L260,130 Z" fill="${W}"/><path d="M62,44 L80,20 L98,44 L88,40 L80,48 L72,40 Z M166,48 L180,30 L196,52" fill="#dff1ff" stroke-width="2"/>` },
+    // ---- vehicles
+    car:       { name: 'Car', cat: 'Vehicles', w: 220, h: 100, svg: () => car(false) },
+    policecar: { name: 'Police car', cat: 'Vehicles', w: 220, h: 100, svg: () => car(true) },
+    bike:      { name: 'Bicycle', cat: 'Vehicles', w: 130, h: 80, svg: () => `<circle cx="28" cy="52" r="24"/><circle cx="102" cy="52" r="24"/><path d="M28,52 L52,20 L90,20 L102,52 M52,20 L62,52 L90,20 M28,52 H62 M46,12 H58 M90,20 L86,6 H96"/>` },
+    boat:      { name: 'Boat', cat: 'Vehicles', w: 170, h: 130, svg: () => `<path d="M4,90 H166 L140,126 H28 Z" fill="#e17055"/><path d="M84,90 V6"/><path d="M84,10 L84,80 L20,80 Z" fill="${W}"/><path d="M90,20 L90,80 L150,80 Z" fill="${W}"/>` },
+    rocket:    { name: 'Rocket', cat: 'Vehicles', w: 80, h: 170, svg: () => `<path d="M40,4 Q70,40 64,130 H16 Q10,40 40,4 Z" fill="${W}"/><circle cx="40" cy="60" r="11" fill="#74b9ff"/><path d="M16,100 L2,140 L18,130 Z M64,100 L78,140 L62,130 Z" fill="#e74c3c"/><path d="M26,132 Q40,170 54,132" fill="#ffa53c" stroke="#e05a00"/>` },
+    // ---- fantasy
+    throne:    { name: 'Throne', cat: 'Fantasy', w: 110, h: 160, svg: () => `<path d="M16,160 V20 L28,4 L40,18 L55,2 L70,18 L82,4 L94,20 V160" fill="#ffd23c"/><rect x="26" y="30" width="58" height="88" fill="#e74c3c"/><rect x="4" y="118" width="102" height="12" fill="#ffd23c"/><path d="M4,130 H106 V160 M4,130 V160"/><rect x="8" y="100" width="18" height="18" fill="#ffd23c"/><rect x="84" y="100" width="18" height="18" fill="#ffd23c"/>` },
+    balcony:   { name: 'Balcony', cat: 'Fantasy', w: 210, h: 80, svg: () => { let s = `<rect x="2" y="2" width="206" height="10" fill="${W}"/><rect x="2" y="68" width="206" height="10" fill="${W}"/>`; for (let x = 12; x < 200; x += 22) s += `<path d="M${x + 4},12 Q${x - 2},26 ${x + 4},40 Q${x + 12},48 ${x + 4},56 Q${x - 2},62 ${x + 4},68 M${x + 12},12 Q${x + 18},26 ${x + 12},40 Q${x + 4},48 ${x + 12},56 Q${x + 18},62 ${x + 12},68" stroke-width="2.4"/>`; return s; } },
+    dragon:    { name: 'Dragon', cat: 'Fantasy', w: 230, h: 170, svg: () => `<path d="M60,120 Q30,150 6,130 Q20,126 26,112 Q40,120 52,106" fill="#8fd18a"/><path d="M60,70 Q70,40 120,48 Q160,54 160,90 Q160,130 110,132 Q66,132 60,110 Z" fill="#8fd18a"/><path d="M100,56 L70,4 L96,22 L110,6 L118,30 L136,16 L130,56 Z" fill="#b8e994"/><path d="M150,70 Q170,40 196,48 L226,52 Q228,64 214,68 L198,70 Q186,86 160,90" fill="#8fd18a"/><circle cx="196" cy="56" r="3" fill="#222"/><path d="M188,44 l4,-12 6,10 M176,46 l2,-12 6,10" fill="${W}"/><path d="M84,130 V162 H96 M126,130 V162 H140"/><path d="M78,90 q10,10 22,6 M94,100 q14,10 26,4" stroke-width="2"/><path d="M218,66 q8,6 4,14" stroke="#e05a00" stroke-width="2"/>` },
+    horse:     { name: 'Horse', cat: 'Fantasy', w: 190, h: 150, svg: () => `<path d="M40,60 Q40,40 70,42 L130,44 Q146,44 150,30 L156,8 Q168,4 180,24 Q186,34 178,38 L166,34 L160,54 Q156,78 136,84 L70,86 Q40,86 40,60 Z" fill="${W}"/><path d="M40,58 Q14,60 10,90 Q24,76 40,72" fill="${W}"/><path d="M58,84 L50,148 M76,86 L82,148 M126,86 L120,148 M140,82 L152,148"/><path d="M156,10 Q146,20 146,40" stroke-width="2.4"/><circle cx="168" cy="20" r="2.5" fill="#222"/>` },
+    chest:     { name: 'Treasure chest', cat: 'Fantasy', w: 80, h: 64, svg: () => `<path d="M4,24 Q4,4 40,4 Q76,4 76,24 Z" fill="#b07a4a"/><rect x="4" y="24" width="72" height="38" fill="#b07a4a"/><rect x="32" y="20" width="16" height="16" fill="#ffd23c"/><path d="M4,24 h72"/>` },
+    crystal:   { name: 'Crystal ball', cat: 'Fantasy', w: 60, h: 70, svg: () => `<circle cx="30" cy="28" r="24" fill="#dcd6ff"/><path d="M18,18 q6,-8 14,-6" stroke-width="2"/><path d="M12,54 L48,54 L54,68 L6,68 Z" fill="#b07a4a"/>` },
+    fireball:  { name: 'Fireball', cat: 'Fantasy', w: 130, h: 60, svg: () => `<path d="M100,6 A24,24 0 1 1 100,54 Q70,50 40,44 Q60,40 20,38 Q50,32 4,26 Q52,20 30,14 Q70,12 100,6 Z" fill="#ffa53c" stroke="#e05a00"/><circle cx="104" cy="30" r="12" fill="#fff36b" stroke="#e05a00" stroke-width="2"/>` },
+    potion:    { name: 'Potion', cat: 'Fantasy', w: 40, h: 60, svg: () => `<path d="M14,4 H26 V20 Q38,26 38,42 Q38,58 20,58 Q2,58 2,42 Q2,26 14,20 Z" fill="#55efc4"/><path d="M12,4 h16"/>` },
+    // ---- animals
+    cat:       { name: 'Cat', cat: 'Animals', w: 80, h: 64, svg: () => `<path d="M10,60 Q6,30 30,30 L60,30 Q72,30 72,50 L72,60"/><path d="M58,32 L56,10 L64,18 L72,10 L74,32" fill="${W}"/><circle cx="66" cy="28" r="12" fill="${W}"/><circle cx="62" cy="26" r="1.5" fill="#222"/><circle cx="70" cy="26" r="1.5" fill="#222"/><path d="M10,40 Q-2,30 6,14" /><path d="M20,48 V62 M60,48 V62"/>` },
+    dog:       { name: 'Dog', cat: 'Animals', w: 100, h: 74, svg: () => `<path d="M18,34 H70 Q80,34 80,44 V48 H18 Z" fill="${W}"/><path d="M24,48 V72 M36,48 V72 M66,48 V72 M76,46 V72"/><path d="M18,36 Q6,30 8,16"/><circle cx="84" cy="26" r="13" fill="${W}"/><path d="M76,16 Q70,34 78,36" fill="#b07a4a" stroke-width="2"/><circle cx="88" cy="24" r="1.8" fill="#222"/><circle cx="97" cy="28" r="2.4" fill="#222"/>` },
+    bird:      { name: 'Bird', cat: 'Animals', w: 50, h: 30, svg: () => `<path d="M4,16 Q14,4 25,16 Q36,4 46,16"/>` },
+    fish:      { name: 'Fish', cat: 'Animals', w: 70, h: 40, svg: () => `<path d="M6,20 Q30,-4 56,20 Q30,44 6,20 Z M56,20 L68,8 L68,32 Z" fill="#74b9ff"/><circle cx="20" cy="17" r="2" fill="#222"/>` },
+    goblin:    { name: 'Goblin', cat: 'Animals', w: 70, h: 100, svg: () => `<circle cx="35" cy="30" r="16" fill="#b8e994"/><path d="M20,26 L2,16 L22,34 M50,26 L68,16 L48,34" fill="#b8e994"/><circle cx="29" cy="28" r="2" fill="#222"/><circle cx="41" cy="28" r="2" fill="#222"/><path d="M28,38 l3,-2 3,2 3,-2 3,2"/><path d="M35,46 V72 M35,72 L24,98 M35,72 L46,98 M35,54 L18,66 M35,54 L52,62"/>` },
+    // ---- things
+    ball:      { name: 'Ball', cat: 'Things', w: 36, h: 36, svg: () => `<circle cx="18" cy="18" r="15" fill="#ff9f43"/><path d="M3,18 h30 M18,3 q-8,15 0,30"/>` },
+    gift:      { name: 'Gift', cat: 'Things', w: 56, h: 58, svg: () => `<rect x="4" y="20" width="48" height="36" fill="#ff7675"/><rect x="2" y="12" width="52" height="10" fill="#ff7675"/><path d="M28,12 V56 M28,12 Q14,-4 10,8 Q14,14 28,12 Q42,-4 46,8 Q42,14 28,12" stroke-width="2.4"/>` },
+    cake:      { name: 'Birthday cake', cat: 'Things', w: 80, h: 70, svg: () => `<rect x="6" y="30" width="68" height="38" fill="#ffeaa7"/><path d="M6,40 q8,8 17,0 q8,8 17,0 q8,8 17,0 q8,8 17,0" fill="none" stroke="#e84393"/><path d="M28,30 V14 M40,30 V14 M52,30 V14" stroke-width="3"/><path d="M28,12 q-3,-5 0,-8 q3,3 0,8 M40,12 q-3,-5 0,-8 q3,3 0,8 M52,12 q-3,-5 0,-8 q3,3 0,8" fill="#ffa53c" stroke="#e05a00" stroke-width="1.6"/>` },
+    computer:  { name: 'Computer', cat: 'Things', w: 80, h: 76, svg: () => `<rect x="4" y="4" width="72" height="50" rx="3" fill="${W}"/><rect x="10" y="10" width="60" height="38" fill="#dff1ff" stroke-width="2"/><path d="M40,54 v12 M20,72 h40"/>` },
+    phone:     { name: 'Big phone', cat: 'Things', w: 40, h: 70, svg: () => `<rect x="4" y="4" width="32" height="62" rx="5" fill="#2d3436"/><rect x="8" y="12" width="24" height="44" fill="#dff1ff" stroke-width="1.6"/>` },
+    bigbook:   { name: 'Open book (big)', cat: 'Things', w: 120, h: 110, svg: () => `<path d="M60,12 Q30,0 6,8 V100 Q30,92 60,104 Q90,92 114,100 V8 Q90,0 60,12 Z" fill="${W}"/><path d="M60,12 V104"/>` + [30, 44, 58, 72].map(y => `<path d="M16,${y} Q34,${y - 4} 50,${y + 2} M70,${y + 2} Q86,${y - 4} 104,${y}" stroke-width="1.6"/>`).join('') },
+    bucket:    { name: 'Bucket', cat: 'Things', w: 50, h: 56, svg: () => `<path d="M6,14 H44 L40,54 H10 Z" fill="#74b9ff"/><path d="M6,14 Q25,-8 44,14" stroke-width="2"/>` },
+    box:       { name: 'Cardboard box', cat: 'Things', w: 80, h: 66, svg: () => `<rect x="4" y="16" width="72" height="48" fill="#e0b98a"/><path d="M4,16 L16,2 H64 L76,16 M40,16 V32"/>` },
+    bomb:      { name: 'Bomb', cat: 'Things', w: 60, h: 62, svg: () => `<circle cx="26" cy="38" r="22" fill="#2d3436"/><path d="M38,20 Q46,6 54,10"/>` + star(55, 8, 0.8, '#ffa53c') },
+    money:     { name: 'Money bag', cat: 'Things', w: 60, h: 66, svg: () => `<path d="M22,14 Q4,34 8,52 Q12,64 30,64 Q48,64 52,52 Q56,34 38,14 Z" fill="#e0c07a"/><path d="M20,10 L40,10 L36,16 H24 Z" fill="#e0c07a"/><text x="30" y="50" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="22" fill="#2d3436" stroke="none">$</text>` },
+    heart:     { name: 'Heart', cat: 'Things', w: 50, h: 46, svg: () => `<path d="M25,42 L5,22 A10,10 0 0 1 25,10 A10,10 0 0 1 45,22 Z" fill="#ff4d7d" stroke="#c9184a"/>` },
+    // ---- effects
+    speed:     { name: 'Speed lines', cat: 'Effects', w: 100, h: 60, svg: () => [8, 20, 32, 44, 54].map((y, i) => `<line x1="${6 + (i % 3) * 10}" y1="${y}" x2="${96 - (i % 2) * 14}" y2="${y}"/>`).join('') },
+    impact:    { name: 'Impact star', cat: 'Effects', w: 100, h: 100, svg: () => { let d = ''; for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12, r = i % 2 ? 22 : 48; d += (i ? 'L' : 'M') + (50 + Math.cos(a) * r).toFixed(1) + ',' + (50 + Math.sin(a) * r).toFixed(1); } return `<path d="${d}Z" fill="#fff36b"/>`; } },
+    dust:      { name: 'Dust cloud', cat: 'Effects', w: 100, h: 50, svg: () => `<path d="M6,46 q-6,-16 10,-18 q0,-16 18,-12 q8,-12 22,-4 q16,-6 20,10 q18,2 14,24 z" fill="${W}" stroke-dasharray="6 4"/>` },
+    motion:    { name: 'Motion arcs', cat: 'Effects', w: 60, h: 60, svg: () => `<path d="M10,10 Q40,30 10,50 M24,4 Q60,30 24,56"/>` },
+    puff:      { name: 'Anger puff', cat: 'Effects', w: 50, h: 40, svg: () => `<path d="M6,30 q-6,-10 4,-14 q0,-12 14,-10 q8,-8 16,2 q12,0 8,14 q6,8 -4,10 z" fill="${W}"/>` },
+    sparkles:  { name: 'Sparkles', cat: 'Effects', w: 70, h: 60, svg: () => `<path transform="translate(20,20)" d="M0,-14 Q2,-2 14,0 Q2,2 0,14 Q-2,2 -14,0 Q-2,-2 0,-14 Z" fill="#ffd23c"/><path transform="translate(52,42) scale(0.7)" d="M0,-14 Q2,-2 14,0 Q2,2 0,14 Q-2,2 -14,0 Q-2,-2 0,-14 Z" fill="#ffd23c"/>` },
+    zzz:       { name: 'Zzz', cat: 'Effects', w: 60, h: 60, svg: () => `<text x="6" y="54" font-family="Comic Sans MS" font-weight="bold" font-size="18" fill="#222" stroke="none">z</text><text x="20" y="38" font-family="Comic Sans MS" font-weight="bold" font-size="22" fill="#222" stroke="none">z</text><text x="36" y="22" font-family="Comic Sans MS" font-weight="bold" font-size="26" fill="#222" stroke="none">Z</text>` },
+    notes:     { name: 'Music notes', cat: 'Effects', w: 60, h: 60, svg: () => `<path d="M14,46 V14 L24,10" /><ellipse cx="10" cy="46" rx="6" ry="4.5" fill="#222"/><path d="M42,40 V8 L56,4 V36"/><ellipse cx="38" cy="40" rx="6" ry="4.5" fill="#222"/><ellipse cx="52" cy="36" rx="6" ry="4.5" fill="#222"/>` },
+    arrow:     { name: 'Arrow', cat: 'Effects', w: 100, h: 40, svg: () => `<path d="M4,20 H84 M70,6 L90,20 L70,34" stroke-width="5"/>` },
+  };
+
+  // ------------------------------------------------------------------ scenes (400 x 300)
+  const G = 250; // ground line
+  const SCENES = {
+    none:     { name: 'Blank', svg: () => '' },
+    ground:   { name: 'Ground line', svg: () => `<path d="M-50,${G} H450"/>` },
+    park:     { name: 'Park', svg: () => `<path d="M-50,${G} Q100,${G - 8} 200,${G} T450,${G}"/>` + tree(330, G, 1.15) + `<path d="M20,${G} q-6,-22 14,-24 q2,-18 22,-16 q10,-8 22,2 q20,-4 20,16 q14,4 4,22 z" fill="#8fd18a"/>` + `<circle cx="60" cy="50" r="20" fill="#ffd23c"/>` + cloud(200, 60, 0.8) + `<path d="M140,${G + 20} l4,-8 4,8 M250,${G + 30} l4,-8 4,8 M40,${G + 32} l4,-8 4,8" stroke-width="2"/>` },
+    city:     { name: 'City street', svg: () => building(-10, G, 90, 190) + building(84, G, 70, 230) + building(158, G, 100, 160) + building(262, G, 70, 210) + building(336, G, 90, 180) + `<path d="M-50,${G} H450 M-50,${G + 26} H450"/><path d="M0,${G + 40} h30 M80,${G + 40} h30 M160,${G + 40} h30 M240,${G + 40} h30 M320,${G + 40} h30" stroke-width="3"/>` },
+    street:   { name: 'Suburb', svg: () => house(100, G, 0.9) + house(300, G, 0.8) + `<path d="M-50,${G} H450"/>` + tree(200, G, 0.8) + cloud(60, 50, 0.6) + cloud(340, 40, 0.7) },
+    room:     { name: 'Living room', svg: () => `<path d="M-50,${G - 20} H450"/><path d="M-50,${G - 26} H450" stroke-width="2"/>` + `<g transform="translate(60,60)">${OBJECTS.window.svg()}</g>` + `<g transform="translate(250,70) scale(1)">${OBJECTS.picture.svg()}</g>` + `<g transform="translate(330,${G - 190})">${OBJECTS.lamp.svg()}</g>` + `<ellipse cx="200" cy="${G + 18}" rx="110" ry="14" fill="#ffeaa7" stroke-width="2"/>` },
+    kitchen:  { name: 'Kitchen', svg: () => `<path d="M-50,${G} H450"/><rect x="-10" y="${G - 90}" width="300" height="90" fill="#fff"/><rect x="-10" y="${G - 96}" width="300" height="8" fill="#e0b98a"/><path d="M60,${G - 88} V${G} M130,${G - 88} V${G} M200,${G - 88} V${G}"/><rect x="-10" y="40" width="300" height="70" fill="#fff"/><path d="M60,40 V110 M130,40 V110 M200,40 V110"/><rect x="310" y="${G - 200}" width="90" height="200" rx="6" fill="#fff"/><path d="M310,${G - 130} H400 M322,${G - 180} v30 M322,${G - 110} v40"/><path d="M150,${G - 110} q0,-14 20,-14 q20,0 20,14 z" fill="#555"/>` },
+    classroom:{ name: 'Classroom', svg: () => `<path d="M-50,${G} H450"/><rect x="70" y="40" width="260" height="130" fill="#2d6a4f"/><path d="M60,176 H340" stroke-width="6"/><text x="100" y="90" font-family="Segoe Print, Comic Sans MS" font-size="24" fill="#fff" stroke="none">2 + 2 = ?</text><text x="100" y="130" font-family="Segoe Print, Comic Sans MS" font-size="20" fill="#fff" stroke="none">A B C</text><g transform="translate(350,30)">${OBJECTS.clock.svg()}</g>` },
+    office:   { name: 'Office', svg: () => `<path d="M-50,${G} H450"/><rect x="40" y="40" width="130" height="110" fill="#dff1ff"/><path d="M40,58 H170 M40,76 H170 M40,94 H170 M40,112 H170 M40,130 H170" stroke-width="1.6"/><g transform="translate(220,${G - 100})">${OBJECTS.desk.svg()}</g><g transform="translate(360,${G - 80})">${OBJECTS.plant.svg()}</g>` },
+    bedroom:  { name: 'Bedroom', svg: () => `<path d="M-50,${G} H450"/><g transform="translate(40,${G - 84})">${OBJECTS.bed.svg()}</g><rect x="260" y="50" width="90" height="80" fill="#2d3436"/><path d="M305,50 v80 M260,90 h90"/><path d="M332,62 A10,10 0 1 0 340,76 A8,8 0 1 1 332,62 Z" fill="#fff36b"/>` + star(280, 70, 0.5) + star(290, 110, 0.4) },
+    castle:   { name: 'Castle', svg: () => `<path d="M-50,${G} H450"/><path d="M60,${G} V120 H80 V104 H100 V120 H120 V104 H140 V120 H160 V104 H180 V120 H220 V104 H240 V120 H260 V104 H280 V120 H300 V104 H320 V120 H340 V${G}" fill="#dfe6e9"/><path d="M40,${G} V70 H56 V56 H70 V70 H84 V56 H98 V70 H110 V${G} Z M290,${G} V70 H302 V56 H316 V70 H330 V56 H344 V70 H360 V${G} Z" fill="#dfe6e9"/><path d="M170,${G} V190 Q200,160 230,190 V${G}" fill="#b07a4a"/><path d="M75,56 V20 L100,28 L75,36 M325,56 V20 L350,28 L325,36" fill="#e74c3c"/><rect x="68" y="100" width="14" height="24" rx="7" fill="#2d3436"/><rect x="318" y="100" width="14" height="24" rx="7" fill="#2d3436"/>` },
+    throneroom:{ name: 'Throne room', svg: () => `<path d="M-50,${G} H450"/><path d="M130,${G + 60} L170,${G} H230 L270,${G + 60}" fill="#e74c3c"/>` + [30, 110, 290, 370].map(x => `<rect x="${x - 14}" y="30" width="28" height="${G - 30}" fill="#fff"/><rect x="${x - 20}" y="22" width="40" height="10" fill="#fff"/><rect x="${x - 20}" y="${G - 10}" width="40" height="10" fill="#fff"/>`).join('') + `<path d="M170,20 H230 V110 L200,94 L170,110 Z" fill="#6c5ce7"/>` + star(200, 56, 1.4) + `<g transform="translate(145,${G - 160})">${OBJECTS.throne.svg()}</g>` },
+    forest:   { name: 'Forest', svg: () => `<path d="M-50,${G} H450"/>` + pine(30, G, 1.1) + tree(120, G, 0.9) + pine(210, G - 4, 0.9) + pine(300, G, 1.2) + tree(390, G, 1) + `<path d="M150,${G + 20} l4,-8 4,8 M320,${G + 30} l4,-8 4,8" stroke-width="2"/>` },
+    beach:    { name: 'Beach', svg: () => `<path d="M-50,170 H450"/><path d="M-50,190 q20,-8 40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0 t40,0" stroke="#4a90e2" stroke-width="2.4"/><path d="M-50,${G - 30} Q200,${G - 50} 450,${G - 20}"/><circle cx="320" cy="80" r="26" fill="#ffd23c"/><path d="M60,${G - 36} Q70,140 90,100" stroke-width="6"/><path d="M90,100 q-30,-10 -50,10 M90,100 q-20,-30 -46,-24 M90,100 q20,-30 44,-20 M90,100 q30,0 44,24" stroke="#2d8a3e" stroke-width="5"/><path d="M200,${G + 10} q10,-16 20,0 z" fill="#e17055" stroke-width="2"/>` + `<path d="M180,40 Q190,28 201,40 Q212,28 222,40"/>` },
+    night:    { name: 'Night sky', svg: () => `<rect x="-50" y="-50" width="500" height="400" fill="#1e2a4a" stroke="none"/><path d="M-50,${G} Q100,${G - 40} 200,${G - 10} T450,${G - 20} V350 H-50 Z" fill="#2d3a5a" stroke="#dfe6e9"/><path d="M330,40 A26,26 0 1 0 344,78 A20,20 0 1 1 330,40 Z" fill="#fff36b" stroke="#fff36b"/>` + [[40, 40], [100, 90], [170, 30], [240, 70], [60, 150], [280, 140], [380, 150], [200, 120]].map(([x, y], i) => star(x, y, 0.5 + (i % 3) * 0.2, '#fff36b')).join('') },
+    mountains:{ name: 'Mountains', svg: () => `<path d="M-50,${G} L60,110 L130,190 L220,70 L310,180 L360,130 L450,${G}" fill="#fff"/><path d="M200,98 L220,70 L240,98 L228,94 L220,104 L212,94 Z" fill="#dff1ff" stroke-width="2"/><path d="M-50,${G} H450"/><circle cx="330" cy="60" r="20" fill="#ffd23c"/>` + cloud(100, 60, 0.7) },
+    desert:   { name: 'Desert', svg: () => `<path d="M-50,${G} Q60,${G - 30} 160,${G} Q260,${G - 40} 450,${G - 6}"/><circle cx="80" cy="70" r="30" fill="#ffd23c"/><path d="M300,${G - 16} V120 Q300,110 310,110 Q320,110 320,120 V${G - 12} M300,180 H284 V150 M320,160 H336 V130" stroke="#2d8a3e" stroke-width="10"/><path d="M160,100 l6,-4 6,4 6,-4" stroke-width="2"/>` },
+    road:     { name: 'Road', svg: () => `<path d="M-50,150 H450"/><path d="M180,150 L-50,320 M220,150 L450,320"/><path d="M200,160 V175 M200,195 V220 M200,245 V285" stroke-width="5"/>` + cloud(80, 60, 0.7) + `<g transform="translate(320,60) scale(0.5)">${OBJECTS.lamppost.svg()}</g>` },
+    space:    { name: 'Space', svg: () => `<rect x="-50" y="-50" width="500" height="400" fill="#10142a" stroke="none"/><circle cx="300" cy="90" r="46" fill="#e17055" stroke="#fff"/><ellipse cx="300" cy="90" rx="78" ry="16" stroke="#fff" fill="none" stroke-width="3"/><path d="M-50,${G + 10} Q200,${G - 30} 450,${G + 10} V350 H-50 Z" fill="#b2bec3" stroke="#fff"/><circle cx="90" cy="${G + 10}" r="12" fill="none" stroke="#636e72"/><circle cx="260" cy="${G + 18}" r="8" fill="none" stroke="#636e72"/>` + [[40, 30], [120, 70], [190, 30], [60, 150], [380, 190], [160, 140], [240, 170]].map(([x, y], i) => star(x, y, 0.4 + (i % 3) * 0.2, '#fff')).join('') },
+    dungeon:  { name: 'Dungeon', svg: () => { let s = `<rect x="-50" y="-50" width="500" height="${G + 50}" fill="#dcdde1" stroke="none"/><path d="M-50,${G} H450"/>`; for (let y = 0; y < G; y += 30) for (let x = (y / 30 % 2) * 30 - 60; x < 450; x += 60) s += `<rect x="${x}" y="${y}" width="60" height="30" fill="none" stroke-width="2"/>`; return s + `<path d="M150,${G} V110 Q200,60 250,110 V${G} Z" fill="#2d3436"/><path d="M165,${G} V100 M185,${G} V80 M200,${G} V75 M215,${G} V80 M235,${G} V100 M150,150 H250 M150,200 H250" stroke-width="4"/><g transform="translate(60,80)"><path d="M0,40 L-4,0 H4 L0,40 Z" fill="#b07a4a"/><path d="M-6,0 Q-9,-12 0,-24 Q2,-14 6,-16 Q10,-8 6,0 Z" fill="#ffa53c" stroke="#e05a00"/></g>`; } },
+    underwater:{ name: 'Underwater', svg: () => `<rect x="-50" y="-50" width="500" height="400" fill="#d6f0ff" stroke="none"/><path d="M-50,30 q25,-10 50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0 t50,0" stroke="#4a90e2" stroke-width="2.4"/><path d="M-50,${G} Q200,${G - 20} 450,${G}"/><path d="M60,${G - 4} q-10,-30 0,-60 q10,-30 0,-60 M80,${G - 4} q10,-30 0,-50 q-10,-20 0,-40 M330,${G - 6} q-10,-30 0,-60" stroke="#2d8a3e" stroke-width="4"/>` + `<g transform="translate(200,90)">${OBJECTS.fish.svg()}</g><circle cx="190" cy="80" r="4" fill="none" stroke-width="2"/><circle cx="182" cy="66" r="6" fill="none" stroke-width="2"/>` },
+  };
+
+  window.OBJ = { OBJECTS, SCENES };
+})();
+
+</script>
+<script>
+/* StickStudio – speech / thought balloons, captions, SFX lettering. */
+(function () {
+  const STYLES = {
+    speech:  { name: 'Speech',        tail: true,  fill: '#ffffff' },
+    rounded: { name: 'Speech (box)',  tail: true,  fill: '#ffffff' },
+    thought: { name: 'Thought',       tail: true,  fill: '#ffffff' },
+    shout:   { name: 'Shout',         tail: true,  fill: '#ffffff' },
+    whisper: { name: 'Whisper',       tail: true,  fill: '#ffffff' },
+    caption: { name: 'Caption box',   tail: false, fill: '#fff6c2' },
+    text:    { name: 'Plain text',    tail: false, fill: 'none' },
+    sfx:     { name: 'Sound effect',  tail: false, fill: '#ffd23c' },
+  };
+
+  const FONTS = {
+    'Comic Sans MS, Comic Neue, cursive': 'Comic',
+    'Segoe Print, Comic Sans MS, cursive': 'Handwritten',
+    'Ink Free, Segoe Print, cursive': 'Marker',
+    'Arial, Helvetica, sans-serif': 'Arial',
+    'Georgia, serif': 'Georgia',
+    'Courier New, monospace': 'Typewriter',
+    'Impact, Arial Black, sans-serif': 'Impact',
+    'Segoe Script, cursive': 'Script',
+  };
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const f = n => Math.round(n * 10) / 10;
+
+  function fontCss(it, bold, italic) {
+    return `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${it.size}px ${it.font}`;
+  }
+
+  // Parse "*bold*" and "_italic_" markers into styled words, paragraph by paragraph.
+  function parse(it) {
+    let text = it.text || '';
+    if (it.upper) text = text.toUpperCase();
+    return text.split('\n').map(par => {
+      const words = []; let cur = null; let b = false, i = false;
+      const push = () => { if (cur && cur.t) words.push(cur); cur = null; };
+      for (const chr of par) {
+        if (chr === '*') { if (cur) { cur.runs.push({ t: '', b: !b, i }); } b = !b; continue; }
+        if (chr === '_') { if (cur) { cur.runs.push({ t: '', b, i: !i }); } i = !i; continue; }
+        if (chr === ' ') { push(); continue; }
+        if (!cur) cur = { t: '', runs: [{ t: '', b, i }] };
+        cur.t += chr; cur.runs[cur.runs.length - 1].t += chr;
+      }
+      push();
+      words.forEach(w => w.runs = w.runs.filter(r => r.t));
+      return words;
+    });
+  }
+
+  function measureRuns(it, runs) {
+    let w = 0;
+    for (const r of runs) { ctx.font = fontCss(it, it.bold || r.b, it.italic || r.i); w += ctx.measureText(r.t).width; }
+    return w;
+  }
+
+  function layout(it, maxW) {
+    ctx.font = fontCss(it, it.bold, it.italic);
+    const space = ctx.measureText(' ').width;
+    const lines = [];
+    for (const words of parse(it)) {
+      if (!words.length) { lines.push({ words: [], w: 0 }); continue; }
+      let line = { words: [], w: 0 };
+      for (const wd of words) {
+        wd.w = measureRuns(it, wd.runs);
+        const nw = line.words.length ? line.w + space + wd.w : wd.w;
+        if (nw > maxW && line.words.length) { lines.push(line); line = { words: [wd], w: wd.w }; }
+        else { line.words.push(wd); line.w = nw; }
+      }
+      lines.push(line);
+    }
+    const maxLine = lines.reduce((m, l) => Math.max(m, l.w), 0);
+    return { lines, space, width: maxLine, height: lines.length * it.size * (it.lh || 1.2) };
+  }
+
+  function innerRatio(style) {
+    return { speech: [0.74, 0.7], whisper: [0.74, 0.7], thought: [0.66, 0.6], shout: [0.6, 0.55], rounded: [1, 1], caption: [1, 1], text: [1, 1], sfx: [1, 1] }[style] || [0.8, 0.8];
+  }
+  function padding(style) { return ['rounded', 'caption'].includes(style) ? 12 : (style === 'text' || style === 'sfx' ? 4 : 0); }
+
+  function innerSize(it) {
+    const [rx, ry] = innerRatio(it.style), p = padding(it.style);
+    return { w: Math.max(10, it.w * rx - 2 * p), h: Math.max(10, it.h * ry - 2 * p) };
+  }
+
+  // Compute a balloon size that nicely fits the text.
+  function fit(it) {
+    const [rx, ry] = innerRatio(it.style), p = padding(it.style);
+    let best = null;
+    for (let iw = 40; iw <= 700; iw += 10) {
+      const L = layout(it, iw);
+      const bw = (L.width + 2 * p) / rx, bh = (L.height + 2 * p) / ry;
+      best = { w: bw, h: bh };
+      const paragraphs = (it.text || '').split('\n').length;
+      if (bh <= bw * 0.62 || L.lines.length <= paragraphs) break;
+    }
+    const ext = it.style === 'sfx' ? it.size * 0.3 : 6;
+    return { w: Math.max(40, Math.ceil(best.w + ext)), h: Math.max(28, Math.ceil(best.h + ext)) };
+  }
+
+  function textSvg(it) {
+    const inner = innerSize(it);
+    const L = layout(it, inner.w + 0.5);
+    const lh = it.size * (it.lh || 1.2);
+    const y0 = -L.height / 2 + lh / 2 + it.size * 0.34;
+    const align = it.align || 'center';
+    const x = align === 'left' ? -inner.w / 2 : align === 'right' ? inner.w / 2 : 0;
+    const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
+    const sfx = it.style === 'sfx';
+    const paint = sfx ? ` stroke="${it.stroke || '#1d1d1d'}" stroke-width="${f(it.size * 0.14)}" stroke-linejoin="round" paint-order="stroke"` : ' stroke="none"';
+    const fill = sfx ? (it.fill || '#ffd23c') : (it.color || '#1d1d1d');
+    let out = '';
+    L.lines.forEach((line, li) => {
+      const y = y0 + li * lh;
+      let spans = '';
+      line.words.forEach((wd, wi) => {
+        wd.runs.forEach((r, ri) => {
+          const pre = wi > 0 && ri === 0 ? ' ' : '';
+          const b = it.bold || r.b, ital = it.italic || r.i;
+          spans += `<tspan font-weight="${b ? 'bold' : 'normal'}" font-style="${ital ? 'italic' : 'normal'}">${esc(pre + r.t)}</tspan>`;
+        });
+      });
+      if (spans) out += `<text x="${f(x)}" y="${f(y)}" text-anchor="${anchor}" xml:space="preserve" font-family="${esc(it.font)}" font-size="${it.size}" fill="${fill}"${paint}>${spans}</text>`;
+    });
+    return out;
+  }
+
+  function ellipsePath(rx, ry) { return `M${-rx},0 A${rx},${ry} 0 1 0 ${rx},0 A${rx},${ry} 0 1 0 ${-rx},0 Z`; }
+
+  function cloudPath(rx, ry) {
+    const per = Math.PI * (3 * (rx + ry) - Math.sqrt((3 * rx + ry) * (rx + 3 * ry)));
+    const n = Math.max(8, Math.round(per / 34));
+    const pts = [];
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + 0.3; pts.push([Math.cos(a) * rx, Math.sin(a) * ry]); }
+    let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
+    for (let i = 0; i < n; i++) {
+      const p = pts[i], q = pts[(i + 1) % n];
+      const ch = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      d += ` A${f(ch * 0.62)},${f(ch * 0.62)} 0 0 1 ${f(q[0])},${f(q[1])}`;
+    }
+    return d + 'Z';
+  }
+
+  function shoutPath(rx, ry) {
+    const n = 26; let d = '';
+    for (let i = 0; i < n; i++) {
+      const a = i / n * Math.PI * 2;
+      const k = i % 2 ? 0.8 + ((i * 7) % 5) * 0.015 : 1.02 + ((i * 3) % 4) * 0.03;
+      d += (i ? 'L' : 'M') + f(Math.cos(a) * rx * k) + ',' + f(Math.sin(a) * ry * k);
+    }
+    return d + 'Z';
+  }
+
+  function tailPath(it) {
+    const tx = it.tx || 0, ty = it.ty || 0;
+    const len = Math.hypot(tx, ty) || 1;
+    const d = [tx / len, ty / len], n = [-d[1], d[0]];
+    const m = Math.min(it.w, it.h);
+    const B = [d[0] * m * 0.22, d[1] * m * 0.22];
+    const wd = Math.max(7, Math.min(20, m * 0.15));
+    const b1 = [B[0] + n[0] * wd, B[1] + n[1] * wd], b2 = [B[0] - n[0] * wd, B[1] - n[1] * wd];
+    const bend = (it.bend !== undefined ? it.bend : 0.4) * wd * 2;
+    if (it.style === 'shout') {
+      const m1 = [(b1[0] + tx) / 2 + n[0] * 6, (b1[1] + ty) / 2 + n[1] * 6];
+      const m2 = [(b2[0] + tx) / 2 + n[0] * 12, (b2[1] + ty) / 2 + n[1] * 12];
+      return `M${f(b1[0])},${f(b1[1])} L${f(m1[0])},${f(m1[1])} L${f(tx)},${f(ty)} L${f(m2[0])},${f(m2[1])} L${f(b2[0])},${f(b2[1])} Z`;
+    }
+    const c1 = [(b1[0] + tx) / 2 + n[0] * bend, (b1[1] + ty) / 2 + n[1] * bend];
+    const c2 = [(b2[0] + tx) / 2 + n[0] * bend, (b2[1] + ty) / 2 + n[1] * bend];
+    return `M${f(b1[0])},${f(b1[1])} Q${f(c1[0])},${f(c1[1])} ${f(tx)},${f(ty)} Q${f(c2[0])},${f(c2[1])} ${f(b2[0])},${f(b2[1])} Z`;
+  }
+
+  function thoughtBubbles(it) {
+    const tx = it.tx || 0, ty = it.ty || 0;
+    const rx = it.w / 2, ry = it.h / 2;
+    const a = Math.atan2(ty / ry, tx / rx);
+    const E = [Math.cos(a) * rx, Math.sin(a) * ry];
+    const k = Math.max(0.6, Math.min(1.4, Math.min(it.w, it.h) / 90));
+    return [[0.3, 9], [0.62, 6], [0.92, 3.5]].map(([t, r]) =>
+      `<circle cx="${f(E[0] + (tx - E[0]) * t)}" cy="${f(E[1] + (ty - E[1]) * t)}" r="${f(r * k)}"/>`).join('');
+  }
+
+  function draw(it) {
+    const st = it.style;
+    const lw = it.lw || 3;
+    const stroke = it.stroke || '#1d1d1d';
+    const fill = it.fill || STYLES[st].fill;
+    const rx = it.w / 2, ry = it.h / 2;
+    const text = textSvg(it);
+    if (st === 'text' || st === 'sfx') return text;
+    let body;
+    switch (st) {
+      case 'rounded': body = `<rect x="${f(-rx)}" y="${f(-ry)}" width="${f(it.w)}" height="${f(it.h)}" rx="${f(Math.min(18, ry))}"/>`; break;
+      case 'caption': body = `<rect x="${f(-rx)}" y="${f(-ry)}" width="${f(it.w)}" height="${f(it.h)}" rx="2"/>`; break;
+      case 'thought': body = `<path d="${cloudPath(rx * 0.9, ry * 0.86)}"/>`; break;
+      case 'shout': body = `<path d="${shoutPath(rx * 0.97, ry * 0.95)}"/>`; break;
+      default: body = `<path d="${ellipsePath(rx, ry)}"/>`;
+    }
+    let tail = '';
+    if (it.tail !== false && STYLES[st].tail) tail = st === 'thought' ? thoughtBubbles(it) : `<path d="${tailPath(it)}"/>`;
+    const dash = st === 'whisper' ? ` stroke-dasharray="${lw * 3} ${lw * 2.2}"` : '';
+    const shapes = body + tail;
+    return `<g fill="${fill}" stroke="${stroke}" stroke-width="${lw * 2}" stroke-linejoin="round"${dash}>${shapes}</g>`
+      + `<g fill="${fill === 'none' ? '#fff' : fill}" stroke="none">${shapes}</g>` + text;
+  }
+
+  window.BAL = { STYLES, FONTS, draw, fit, layout, innerSize };
+})();
+
+</script>
+<script>
+/* StickStudio – tiny dependency-free PDF writer: one full-page JPEG image per page. */
+(function () {
+  function b64ToBytes(b64) {
+    const bin = atob(b64), out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  /** pages: [{ jpeg: Uint8Array, imgW, imgH, ptW, ptH }] → Blob (application/pdf) */
+  function build(pages, title) {
+    const enc = new TextEncoder();
+    const parts = []; let offset = 0; const xref = [];
+    const put = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); offset += b.length; };
+    const obj = (n, body) => { xref[n] = offset; put(`${n} 0 obj\n`); body(); put(`\nendobj\n`); };
+
+    const n = pages.length;
+    // object numbers: 1 catalog, 2 pages, 3 info, then per page: page, content, image
+    const pageObj = i => 4 + i * 3, contObj = i => 5 + i * 3, imgObj = i => 6 + i * 3;
+    put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+    obj(1, () => put('<< /Type /Catalog /Pages 2 0 R >>'));
+    obj(2, () => put(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_, i) => pageObj(i) + ' 0 R').join(' ')}] >>`));
+    const safe = String(title || 'Cartoon').replace(/[()\\]/g, '').replace(/[^\x20-\x7e]/g, '');
+    obj(3, () => put(`<< /Title (${safe}) /Creator (StickStudio) >>`));
+    pages.forEach((p, i) => {
+      // optional crop marks: the page is placed inside a larger sheet with marks at the trim corners
+      const o = p.marks ? 28 : 0;
+      const w = p.ptW.toFixed(2), h = p.ptH.toFixed(2);
+      const W = (p.ptW + 2 * o).toFixed(2), H = (p.ptH + 2 * o).toFixed(2);
+      obj(pageObj(i), () => put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}]${o ? ` /TrimBox [${o} ${o} ${(p.ptW + o).toFixed(2)} ${(p.ptH + o).toFixed(2)}]` : ''} /Resources << /XObject << /Im${i} ${imgObj(i)} 0 R >> /ProcSet [/PDF /ImageC] >> /Contents ${contObj(i)} 0 R >>`));
+      let content = `q ${w} 0 0 ${h} ${o} ${o} cm /Im${i} Do Q`;
+      if (o) {
+        const x1 = o, y1 = o, x2 = p.ptW + o, y2 = p.ptH + o, L = 18, gap = 6, mk = [];
+        for (const [x, sx] of [[x1, -1], [x2, 1]]) for (const [y, sy] of [[y1, -1], [y2, 1]]) {
+          mk.push(`${(x + sx * gap).toFixed(2)} ${y.toFixed(2)} m ${(x + sx * (gap + L)).toFixed(2)} ${y.toFixed(2)} l`);
+          mk.push(`${x.toFixed(2)} ${(y + sy * gap).toFixed(2)} m ${x.toFixed(2)} ${(y + sy * (gap + L)).toFixed(2)} l`);
+        }
+        content += `\nq 0 G 0.5 w ${mk.join(' ')} S Q`;
+      }
+      obj(contObj(i), () => put(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+      obj(imgObj(i), () => {
+        put(`<< /Type /XObject /Subtype /Image /Width ${p.imgW} /Height ${p.imgH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpeg.length} >>\nstream\n`);
+        put(p.jpeg);
+        put('\nendstream');
+      });
+    });
+    const total = 4 + n * 3;
+    const xrefPos = offset;
+    let x = `xref\n0 ${total}\n0000000000 65535 f \n`;
+    for (let i = 1; i < total; i++) x += String(xref[i]).padStart(10, '0') + ' 00000 n \n';
+    put(x);
+    put(`trailer\n<< /Size ${total} /Root 1 0 R /Info 3 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);
+    return new Blob(parts, { type: 'application/pdf' });
+  }
+
+  // ---- minimal ZIP writer (stored, no compression – PNGs are already compressed)
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  /** files: [{ name, data: Uint8Array }] → Blob (application/zip) */
+  function zip(files) {
+    const enc = new TextEncoder(), parts = [], central = []; let offset = 0;
+    const d = new Date(), dt = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)), dd = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate());
+    for (const f of files) {
+      const name = enc.encode(f.name), crc = crc32(f.data), n = f.data.length;
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+      h.setUint16(10, dt, true); h.setUint16(12, dd, true); h.setUint32(14, crc, true); h.setUint32(18, n, true); h.setUint32(22, n, true);
+      h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+      parts.push(new Uint8Array(h.buffer), name, f.data);
+      const c = new DataView(new ArrayBuffer(46));
+      c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+      c.setUint16(12, dt, true); c.setUint16(14, dd, true); c.setUint32(16, crc, true); c.setUint32(20, n, true); c.setUint32(24, n, true);
+      c.setUint16(28, name.length, true); c.setUint32(42, offset, true);
+      central.push(new Uint8Array(c.buffer), name);
+      offset += 30 + name.length + n;
+    }
+    const cdSize = central.reduce((a, b) => a + b.length, 0);
+    const e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+    e.setUint32(12, cdSize, true); e.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/zip' });
+  }
+
+  window.PDF = { build, b64ToBytes, zip };
+})();
+
+</script>
+<script>
+/* StickStudio – editor application */
+(function () {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const f = n => Math.round(n * 100) / 100;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rot = (x, y, deg) => { const r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r); return [x * c - y * s, x * s + y * c]; };
+  let uidN = 0;
+  const uid = () => 'i' + Date.now().toString(36) + (uidN++).toString(36);
+
+  const FORMATS = {
+    a4p:     { name: 'A4 portrait',   w: 794,  h: 1123 },
+    a4l:     { name: 'A4 landscape',  w: 1123, h: 794 },
+    letterp: { name: 'Letter portrait', w: 816, h: 1056 },
+    letterl: { name: 'Letter landscape', w: 1056, h: 816 },
+    square:  { name: 'Square',        w: 900,  h: 900 },
+    strip:   { name: 'Comic strip (wide)', w: 1500, h: 520 },
+  };
+  const DEFAULT_TEXT = { speech: 'Hello!', rounded: 'Hi there!', thought: 'Hmm...', shout: 'AAARGH!', whisper: 'psst...', caption: 'Meanwhile...', text: 'Text', sfx: 'BOOM!' };
+  const SFX_PRESETS = ['BOOM!', 'POW!', 'ZOOOM', 'WHOOSH', 'CRASH!', 'SPLASH!', 'GRR!', 'ROAR!', 'AAARGH!', 'HELLO', '!?', 'ZZZ...'];
+  const STORE_KEY = 'stickstudio.doc.v1';
+  const INDEX_KEY = 'stickstudio.projects.v1', PROJ_PREFIX = 'stickstudio.proj.', PRESET_KEY = 'stickstudio.mychars.v1', HELP_KEY = 'stickstudio.helpSeen';
+  // layout presets: cols per row, optional row heights and per-row panel width ratios
+  const LAYOUTS = [
+    { name: 'Single panel', cols: [1] },
+    { name: 'Strip of 3', cols: [3] },
+    { name: '2 × 2', cols: [2, 2] },
+    { name: '3 rows × 2', cols: [2, 2, 2] },
+    { name: '3 × 3', cols: [3, 3, 3] },
+    { name: '4 rows × 2', cols: [2, 2, 2, 2] },
+    { name: 'Classic page', cols: [3, 2, 3] },
+    { name: 'Splash on top', cols: [1, 3], heights: [1.8, 1] },
+    { name: 'Big finish', cols: [3, 1], heights: [1, 1.8] },
+    { name: 'Big middle', cols: [2, 1, 2], heights: [1, 1.5, 1] },
+    { name: '2 + 1', cols: [2, 1] },
+    { name: '1 + 2', cols: [1, 2] },
+    { name: 'Staggered', cols: [2, 2, 2], widths: [[2, 1], [1, 2], [2, 1]] },
+    { name: 'Wide + narrow', cols: [2, 2], widths: [[1, 2], [2, 1]] },
+    { name: '4-koma (vertical)', cols: [1, 1, 1, 1] },
+    { name: 'Webcomic strip of 4', cols: [4] },
+  ];
+
+  // ------------------------------------------------------------------ document model
+  function defaultLayout(rows = 2, cols = 2) {
+    return { rows, cols: Array(rows).fill(cols), heights: Array(rows).fill(1), widths: [], margin: 28, gutter: 14, border: 4, radius: 0, borderColor: '#1d1d1d', title: '', titleSize: 34, titleFont: 'Comic Sans MS, Comic Neue, cursive', pageBg: '#ffffff' };
+  }
+  const newPage = layout => ({ id: uid(), layout: layout ? JSON.parse(JSON.stringify(layout)) : defaultLayout(), panels: {}, items: [] });
+  const newDoc = () => ({ id: uid(), title: 'My cartoon', format: 'a4p', mono: false, pages: [newPage()] });
+
+  let doc = null;
+  const state = { page: 0, sel: null, selPanel: null, zoom: 1, tab: 'characters', libChar: 'boy', libExpr: 'happy', dragId: null, clipboard: null, guides: [] };
+
+  const fmt = (pg = page()) => FORMATS[(pg && pg.format) || doc.format] || FORMATS.a4p;
+  const page = () => doc.pages[state.page];
+  const selItem = () => state.sel ? page().items.find(i => i.id === state.sel) || null : null;
+
+  function normLayout(L) {
+    L.rows = clamp(Math.round(L.rows) || 1, 1, 10);
+    if (!Array.isArray(L.cols)) L.cols = [];
+    if (!Array.isArray(L.heights)) L.heights = [];
+    if (!Array.isArray(L.widths)) L.widths = [];
+    while (L.cols.length < L.rows) L.cols.push(L.cols[L.cols.length - 1] || 2);
+    while (L.heights.length < L.rows) L.heights.push(1);
+    L.cols.length = L.rows; L.heights.length = L.rows;
+    L.cols = L.cols.map(c => clamp(Math.round(c) || 1, 1, 10));
+    L.heights = L.heights.map(h => clamp(+h || 1, 0.2, 5));
+    L.widths.length = L.rows;
+    for (let r = 0; r < L.rows; r++) {
+      const w = Array.isArray(L.widths[r]) ? L.widths[r] : [];
+      while (w.length < L.cols[r]) w.push(1);
+      w.length = L.cols[r];
+      L.widths[r] = w.map(x => clamp(+x || 1, 0.2, 5));
+    }
+    return L;
+  }
+
+  function computePanels(pg) {
+    const F = fmt(pg), L = normLayout(pg.layout);
+    const m = +L.margin, g = +L.gutter;
+    const titleH = L.title ? L.titleSize * 1.5 : 0;
+    const x0 = m, y0 = m + titleH, aw = F.w - 2 * m, ah = F.h - 2 * m - titleH;
+    const hs = L.heights.reduce((a, b) => a + b, 0);
+    const availH = ah - g * (L.rows - 1);
+    const list = []; let y = y0;
+    for (let r = 0; r < L.rows; r++) {
+      const rh = availH * L.heights[r] / hs, n = L.cols[r];
+      const ws = L.widths[r], wsum = ws.reduce((a, b) => a + b, 0), availW = aw - g * (n - 1);
+      let x = x0;
+      for (let c = 0; c < n; c++) { const cw = availW * ws[c] / wsum; list.push({ key: `${r}-${c}`, r, c, x, y, w: cw, h: rh }); x += cw + g; }
+      y += rh + g;
+    }
+    const map = {}; list.forEach(p => map[p.key] = p);
+    return { list, map, L };
+  }
+
+  function panelFor(it, PM) {
+    let P = PM.map[it.panel];
+    if (!P) {
+      const [r, c] = String(it.panel || '0-0').split('-').map(Number);
+      const L = PM.L;
+      const rr = clamp(r || 0, 0, L.rows - 1), cc = clamp(c || 0, 0, L.cols[rr] - 1);
+      it.panel = `${rr}-${cc}`; P = PM.map[it.panel];
+    }
+    // keep the composition when the panel changes size (layout / format / margins edits)
+    if (it.pw && it.ph && (Math.abs(it.pw - P.w) > 0.01 || Math.abs(it.ph - P.h) > 0.01)) {
+      const rw = P.w / it.pw, rh = P.h / it.ph, k = Math.min(rw, rh);
+      it.x *= rw; it.y *= rh; it.w *= k; it.h *= k;
+      if (it.type === 'balloon') { it.tx *= k; it.ty *= k; it.size *= k; }
+    }
+    it.pw = P.w; it.ph = P.h;
+    return P;
+  }
+
+  function panelAt(p, PM) {
+    let best = null, bd = Infinity;
+    for (const P of PM.list) {
+      const dx = Math.max(P.x - p[0], 0, p[0] - (P.x + P.w)), dy = Math.max(P.y - p[1], 0, p[1] - (P.y + P.h));
+      const d = Math.hypot(dx, dy);
+      if (d < bd) { bd = d; best = P; }
+    }
+    return best;
+  }
+
+  const nat = it => it.type === 'figure' ? [FIG.NW, FIG.NH] : it.type === 'object' ? [(OBJ.OBJECTS[it.obj] || { w: 50 }).w, (OBJ.OBJECTS[it.obj] || { h: 50 }).h] : [it.w, it.h];
+
+  // ------------------------------------------------------------------ rendering
+  function itemTransform(it, P) {
+    const ax = P.x + it.x, ay = P.y + it.y;
+    if (it.type === 'balloon') return `translate(${f(ax)},${f(ay)}) rotate(${f(it.rot || 0)})`;
+    const [nw, nh] = nat(it);
+    const sx = (it.flipX ? -1 : 1) * it.w / nw, sy = (it.flipY ? -1 : 1) * it.h / nh;
+    return `translate(${f(ax)},${f(ay)}) rotate(${f(it.rot || 0)}) scale(${f(sx * 1000) / 1000},${f(sy * 1000) / 1000}) translate(${f(-nw / 2)},${f(-nh / 2)})`;
+  }
+
+  function itemSvg(it, P, editor) {
+    let inner = '', hit = '';
+    const [nw, nh] = nat(it);
+    if (it.type === 'figure') inner = FIG.draw(it);
+    else if (it.type === 'object') {
+      const o = OBJ.OBJECTS[it.obj];
+      inner = o ? `<g fill="none" stroke="${it.color || '#1d1d1d'}" stroke-width="${it.lw || 3}" stroke-linecap="round" stroke-linejoin="round">${o.svg(it)}</g>` : '';
+    } else inner = BAL.draw(it);
+    if (editor) hit = it.type === 'balloon'
+      ? `<rect x="${f(-it.w / 2)}" y="${f(-it.h / 2)}" width="${f(it.w)}" height="${f(it.h)}" fill="transparent" stroke="none"/>`
+      : `<rect x="0" y="0" width="${nw}" height="${nh}" fill="transparent" stroke="none"/>`;
+    const op = it.opacity != null && it.opacity < 1 ? ` opacity="${it.opacity}"` : '';
+    const mono = it.mono ? ' filter="url(#mono)"' : '';
+    const lock = editor && it.locked ? ' pointer-events="none"' : '';
+    return `<g class="item" data-id="${it.id}" transform="${itemTransform(it, P)}"${op}${mono}${lock}>${hit}${inner}</g>`;
+  }
+
+  function sceneSvg(pd, P, rad) {
+    const sc = OBJ.SCENES[pd.scene];
+    if (!sc || pd.scene === 'none') return '';
+    const z = pd.sceneZoom || 1;
+    const vw = 400 / z, vh = 300 / z;
+    const vx = 200 - vw / 2 + (pd.sceneX || 0), vy = 300 - vh;
+    const content = pd.sceneFlip ? `<g transform="translate(400,0) scale(-1,1)">${sc.svg()}</g>` : sc.svg();
+    return `<svg x="${f(P.x)}" y="${f(P.y)}" width="${f(P.w)}" height="${f(P.h)}" viewBox="${f(vx)} ${f(vy)} ${f(vw)} ${f(vh)}" preserveAspectRatio="xMidYMax slice" overflow="hidden"><g fill="none" stroke="${pd.sceneColor || '#3a3a3a'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="${pd.sceneOpacity != null ? pd.sceneOpacity : 1}"${pd.sceneMono ? ' filter="url(#mono)"' : ''}>${content}</g></svg>`;
+  }
+
+  function pageContent(pg, opts = {}) {
+    const editor = !opts.export;
+    const F = fmt(pg), L = pg.layout, PM = computePanels(pg);
+    let defs = `<filter id="mono"><feColorMatrix type="saturate" values="0"/></filter>`;
+    let body = `<rect x="0" y="0" width="${F.w}" height="${F.h}" fill="${L.pageBg || '#fff'}"/>`;
+    if (L.title) body += `<text x="${F.w / 2}" y="${f(L.margin + L.titleSize * 1.05)}" text-anchor="middle" font-family="${esc(L.titleFont)}" font-size="${L.titleSize}" font-weight="bold" fill="${L.borderColor || '#1d1d1d'}">${esc(L.title)}</text>`;
+    const rad = +L.radius || 0;
+    const unclipped = [];
+    let dragged = '';
+    const byPanel = {};
+    for (const it of pg.items) {
+      const P = panelFor(it, PM);
+      if (editor && it.id === state.dragId) { dragged = itemSvg(it, P, editor); continue; }
+      if (it.clip === false) { unclipped.push(itemSvg(it, P, editor)); continue; }
+      (byPanel[P.key] = byPanel[P.key] || []).push(itemSvg(it, P, editor));
+    }
+    for (const P of PM.list) {
+      const pd = pg.panels[P.key] || {};
+      const cid = `clip-${pg.id}-${P.key}`;
+      defs += `<clipPath id="${cid}"><rect x="${f(P.x)}" y="${f(P.y)}" width="${f(P.w)}" height="${f(P.h)}" rx="${rad}"/></clipPath>`;
+      let inner = `<rect class="panel-bg" data-panel="${P.key}" x="${f(P.x)}" y="${f(P.y)}" width="${f(P.w)}" height="${f(P.h)}" fill="${pd.bg || '#ffffff'}"/>`;
+      inner += sceneSvg(pd, P, rad);
+      inner += (byPanel[P.key] || []).join('');
+      const bw = pd.noBorder ? 0 : +L.border;
+      const border = bw > 0 ? `<rect x="${f(P.x)}" y="${f(P.y)}" width="${f(P.w)}" height="${f(P.h)}" rx="${rad}" fill="none" stroke="${L.borderColor}" stroke-width="${bw}" pointer-events="none"/>` : '';
+      body += `<g class="panel" data-panel="${P.key}"><g clip-path="url(#${cid})">${inner}</g>${border}</g>`;
+    }
+    body += unclipped.join('') + dragged;
+    const mono = opts.mono || doc.mono;
+    let out = `<defs>${defs}</defs><g${mono ? ' filter="url(#mono)"' : ''}>${body}</g>`;
+    if (editor) out += `<g id="overlay">${overlaySvg(PM)}</g>`;
+    return out;
+  }
+
+  function overlaySvg(PM) {
+    const z = state.zoom, hs = 9 / z, sw = 1.5 / z;
+    let o = '';
+    for (const g of state.guides) o += `<line x1="${f(g[0])}" y1="${f(g[1])}" x2="${f(g[2])}" y2="${f(g[3])}" stroke="#ff3fa4" stroke-width="${sw}" stroke-dasharray="${4 / z} ${3 / z}" pointer-events="none"/>`;
+    const it = selItem();
+    if (!it && state.selPanel && PM.map[state.selPanel]) {
+      const P = PM.map[state.selPanel];
+      o += `<rect x="${f(P.x - 3 / z)}" y="${f(P.y - 3 / z)}" width="${f(P.w + 6 / z)}" height="${f(P.h + 6 / z)}" fill="none" stroke="#2f6fed" stroke-width="${2 / z}" stroke-dasharray="${6 / z} ${4 / z}" pointer-events="none"/>`;
+    }
+    if (!it) return o;
+    const P = panelFor(it, PM);
+    const c = [P.x + it.x, P.y + it.y], r = it.rot || 0;
+    const pt = (x, y) => { const v = rot(x, y, r); return [c[0] + v[0], c[1] + v[1]]; };
+    const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => ({ sx, sy, p: pt(sx * it.w / 2, sy * it.h / 2) }));
+    o += `<polygon points="${corners.map(k => f(k.p[0]) + ',' + f(k.p[1])).join(' ')}" fill="none" stroke="#2f6fed" stroke-width="${sw}" stroke-dasharray="${5 / z} ${3 / z}" pointer-events="none"/>`;
+    if (it.locked) return o;
+    const top = pt(0, -it.h / 2), rh = pt(0, -it.h / 2 - 26 / z);
+    o += `<line x1="${f(top[0])}" y1="${f(top[1])}" x2="${f(rh[0])}" y2="${f(rh[1])}" stroke="#2f6fed" stroke-width="${sw}" pointer-events="none"/>`;
+    o += `<circle data-h="rot" cx="${f(rh[0])}" cy="${f(rh[1])}" r="${f(hs * 0.7)}" fill="#fff" stroke="#2f6fed" stroke-width="${sw}"/>`;
+    corners.forEach(k => o += `<rect data-h="corner" data-sx="${k.sx}" data-sy="${k.sy}" x="${f(k.p[0] - hs / 2)}" y="${f(k.p[1] - hs / 2)}" width="${f(hs)}" height="${f(hs)}" fill="#fff" stroke="#2f6fed" stroke-width="${sw}"/>`);
+    if (it.type === 'balloon' && it.tail !== false && BAL.STYLES[it.style].tail) {
+      const tp = pt(it.tx, it.ty);
+      o += `<circle data-h="tail" cx="${f(tp[0])}" cy="${f(tp[1])}" r="${f(hs * 0.75)}" fill="#ffb020" stroke="#fff" stroke-width="${sw}"><title>Drag to aim the tail</title></circle>`;
+    }
+    return o;
+  }
+
+  const svg = $('#page');
+  function renderCanvas() {
+    const F = fmt();
+    svg.setAttribute('viewBox', `0 0 ${F.w} ${F.h}`);
+    svg.setAttribute('width', Math.round(F.w * state.zoom));
+    svg.setAttribute('height', Math.round(F.h * state.zoom));
+    svg.innerHTML = pageContent(page());
+    $('#zoomLabel').textContent = Math.round(state.zoom * 100) + '%';
+  }
+  function renderOverlay() {
+    const g = svg.querySelector('#overlay');
+    if (g) g.innerHTML = overlaySvg(computePanels(page()));
+  }
+  function renderAll() { renderCanvas(); renderPageTabs(); renderInspector(); }
+
+  // ------------------------------------------------------------------ history & persistence
+  let history = [], hIndex = -1, commitTimer = null, fileSnap = null, thumbTimer = null;
+  function snapshot() { return JSON.stringify(doc); }
+  function commit() {
+    clearTimeout(commitTimer); commitTimer = null;
+    const s = snapshot();
+    if (history[hIndex] === s) return;
+    history = history.slice(0, hIndex + 1); history.push(s);
+    if (history.length > 150) history.shift();
+    hIndex = history.length - 1;
+    save(); afterChange();
+  }
+  const commitSoon = () => { clearTimeout(commitTimer); commitTimer = setTimeout(commit, 450); };
+  function restore(s) {
+    doc = JSON.parse(s);
+    state.page = clamp(state.page, 0, doc.pages.length - 1);
+    if (!selItem()) state.sel = null;
+    renderAll(); save(); afterChange();
+  }
+  function undo() { if (commitTimer) commit(); if (hIndex > 0) { hIndex--; restore(history[hIndex]); } }
+  function redo() { if (hIndex < history.length - 1) { hIndex++; restore(history[hIndex]); } }
+  function resetHistory() { history = []; hIndex = -1; commit(); }
+  // after each change: refresh undo buttons, unsaved marker and (debounced) page thumbnails
+  function afterChange() {
+    $('#btnUndo').disabled = hIndex <= 0;
+    $('#btnRedo').disabled = hIndex >= history.length - 1;
+    const dirty = fileSnap !== null ? fileSnap !== history[hIndex] : true;
+    $('#dirtyMark').hidden = !dirty;
+    document.title = (dirty ? '● ' : '') + (doc.title || 'Cartoon') + ' – StickStudio';
+    clearTimeout(thumbTimer); thumbTimer = setTimeout(renderPageTabs, 300);
+  }
+  const markFileSaved = () => { fileSnap = history[hIndex] || snapshot(); afterChange(); };
+
+  // ---- browser storage: the open cartoon + a list of recent projects
+  const readJSON = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } };
+  const projIndex = () => readJSON(INDEX_KEY, []);
+  function save() {
+    try {
+      if (!doc.id) doc.id = uid();
+      const s = snapshot();
+      localStorage.setItem(STORE_KEY, s);
+      localStorage.setItem(PROJ_PREFIX + doc.id, s);
+      const idx = projIndex().filter(p => p.id !== doc.id);
+      idx.unshift({ id: doc.id, title: doc.title || 'Untitled', updated: Date.now(), pages: doc.pages.length });
+      localStorage.setItem(INDEX_KEY, JSON.stringify(idx.slice(0, 40)));
+    } catch (e) { if (!save.warned) { save.warned = true; toast('Browser storage is full – use Save to keep a file copy', 5000); } }
+  }
+
+  /** Make any loaded document safe to use (old versions, hand-edited or partly broken files). */
+  function migrateDoc(d) {
+    if (!d || typeof d !== 'object' || !Array.isArray(d.pages) || !d.pages.length) throw new Error('this is not a StickStudio project');
+    d.id = d.id || uid();
+    d.title = typeof d.title === 'string' ? d.title : 'My cartoon';
+    if (!FORMATS[d.format]) d.format = 'a4p';
+    d.mono = !!d.mono;
+    d.pages = d.pages.filter(p => p && typeof p === 'object').map(p => {
+      p.id = p.id || uid();
+      p.layout = Object.assign(defaultLayout(), p.layout || {});
+      normLayout(p.layout);
+      if (p.format && !FORMATS[p.format]) delete p.format;
+      p.panels = p.panels && typeof p.panels === 'object' ? p.panels : {};
+      p.items = (Array.isArray(p.items) ? p.items : []).filter(it => it && typeof it === 'object' && (
+        (it.type === 'figure' && FIG.CHARACTERS[it.char]) || (it.type === 'object' && OBJ.OBJECTS[it.obj]) || (it.type === 'balloon' && BAL.STYLES[it.style])));
+      p.items.forEach(it => {
+        it.id = it.id || uid();
+        if (it.type === 'figure' && !FIG.POSES[it.pose]) it.pose = 'stand';
+        if (it.type === 'figure' && !FIG.EXPRESSIONS[it.expr]) it.expr = 'happy';
+        ['x', 'y', 'w', 'h'].forEach(k => { if (!isFinite(+it[k])) it[k] = k === 'w' || k === 'h' ? 80 : 50; else it[k] = +it[k]; });
+      });
+      return p;
+    });
+    if (!d.pages.length) throw new Error('the project has no pages');
+    return d;
+  }
+  function loadDoc(d, fromFile) {
+    if (commitTimer) commit();
+    doc = migrateDoc(d); state.page = 0; state.sel = null; state.selPanel = null;
+    fileSnap = null; resetHistory(); if (fromFile) markFileSaved();
+    renderAll(); zoomFit();
+  }
+
+  function toast(msg, ms = 2200, action) {
+    const t = $('#toast'); t.innerHTML = esc(msg); t.hidden = false;
+    if (action) {
+      const b = document.createElement('button'); b.textContent = action.label;
+      b.onclick = () => { t.hidden = true; action.fn(); }; t.appendChild(b);
+    }
+    clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, ms);
+  }
+
+  // ------------------------------------------------------------------ item factories
+  function makeItem(spec, P, at) {
+    const cx = at ? at[0] - P.x : P.w / 2, cy = at ? at[1] - P.y : P.h * 0.55;
+    const figH = clamp(Math.min(P.h * 0.58, P.w * 1.1), 60, 420);
+    const s = figH / FIG.NH;
+    let it;
+    if (spec.kind === 'figure') {
+      it = { type: 'figure', char: spec.char, pose: spec.pose, expr: spec.expr || 'happy', fx: (FIG.POSES[spec.pose] && FIG.POSES[spec.pose].fxAuto) ? FIG.POSES[spec.pose].fxAuto.slice() : [], w: FIG.NW * s, h: FIG.NH * s, lw: 4, color: '#1d1d1d' };
+      if (spec.style) Object.assign(it, spec.style); // saved "my character" look
+    } else if (spec.kind === 'object') {
+      const o = OBJ.OBJECTS[spec.obj];
+      let k = s;
+      if (o.h * k > P.h * 0.92) k = P.h * 0.92 / o.h;
+      if (o.w * k > P.w * 0.95) k = P.w * 0.95 / o.w;
+      it = { type: 'object', obj: spec.obj, w: o.w * k, h: o.h * k, lw: 3, color: '#1d1d1d' };
+    } else if (spec.kind === 'balloon') {
+      const style = spec.style;
+      it = { type: 'balloon', style, text: spec.text || DEFAULT_TEXT[style], font: style === 'sfx' ? 'Impact, Arial Black, sans-serif' : 'Comic Sans MS, Comic Neue, cursive', size: style === 'sfx' ? 44 : 17, bold: style === 'shout', italic: false, upper: false, align: 'center', color: '#1d1d1d', fill: BAL.STYLES[style].fill, stroke: '#1d1d1d', lw: 2.5, tail: BAL.STYLES[style].tail, autoFit: true, clip: false, rot: style === 'sfx' ? -8 : 0 };
+      if (style === 'whisper') it.italic = true;
+      Object.assign(it, BAL.fit(it));
+      it.tx = -it.w * 0.18; it.ty = it.h / 2 + 34;
+    }
+    Object.assign(it, { id: uid(), panel: P.key, pw: P.w, ph: P.h, x: cx, y: cy, rot: it.rot || 0, flipX: false, flipY: false });
+    return it;
+  }
+
+  function addFromSpec(spec, pagePt) {
+    const pg = page(), PM = computePanels(pg);
+    if (spec.kind === 'scene') {
+      const P = pagePt ? panelAt(pagePt, PM) : PM.map[state.selPanel] || PM.list[0];
+      pg.panels[P.key] = Object.assign(pg.panels[P.key] || {}, { scene: spec.scene });
+      state.selPanel = P.key; state.sel = null;
+      commit(); renderAll(); return;
+    }
+    let P;
+    if (pagePt) P = panelAt(pagePt, PM);
+    else {
+      const cur = selItem();
+      P = PM.map[state.selPanel] || (cur && PM.map[cur.panel]) || PM.list[0];
+    }
+    const it = makeItem(spec, P, pagePt);
+    pg.items.push(it);
+    state.sel = it.id; state.selPanel = P.key;
+    commit(); renderAll();
+  }
+
+  // ------------------------------------------------------------------ pointer interaction
+  function toPage(e) {
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return [q.x, q.y];
+  }
+  let drag = null, lastClick = { id: null, t: 0 };
+
+  svg.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    closeInline(true);
+    const p = toPage(e);
+    const PM = computePanels(page());
+    const hEl = e.target.closest('[data-h]');
+    const it = selItem();
+    if (hEl && it) {
+      const P = panelFor(it, PM), c = [P.x + it.x, P.y + it.y], r = it.rot || 0;
+      const t = hEl.dataset.h;
+      if (t === 'corner') {
+        const sx = +hEl.dataset.sx, sy = +hEl.dataset.sy;
+        const a = rot(-sx * it.w / 2, -sy * it.h / 2, r);
+        const tipv = it.type === 'balloon' ? rot(it.tx, it.ty, r) : [0, 0];
+        drag = { t, sx, sy, anchor: [c[0] + a[0], c[1] + a[1]], w0: it.w, h0: it.h, tip0: [c[0] + tipv[0], c[1] + tipv[1]], size0: it.size };
+      } else drag = { t, c };
+    } else {
+      const el = e.target.closest('.item');
+      if (el) {
+        const id = el.dataset.id;
+        const now = Date.now();
+        if (lastClick.id === id && now - lastClick.t < 380) {
+          const clicked = page().items.find(i => i.id === id);
+          if (clicked && clicked.type === 'balloon') { lastClick = { id: null, t: 0 }; openInline(clicked); e.preventDefault(); return; }
+        }
+        lastClick = { id, t: now };
+        if (state.sel !== id) { state.sel = id; const ci = selItem(); state.selPanel = ci.panel; renderCanvas(); renderInspector(); }
+        const ci = selItem();
+        if (e.altKey) { const copy = cloneItem(ci); page().items.push(copy); state.sel = copy.id; }
+        const cur = selItem();
+        drag = { t: 'move', p0: p, x0: cur.x, y0: cur.y, moved: false };
+      } else {
+        const P = panelAt(p, PM);
+        const inside = P && p[0] >= P.x && p[0] <= P.x + P.w && p[1] >= P.y && p[1] <= P.y + P.h;
+        state.sel = null; state.selPanel = inside ? P.key : null;
+        renderCanvas(); renderInspector();
+        return;
+      }
+    }
+    svg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  svg.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const it = selItem(); if (!it) return;
+    const p = toPage(e);
+    const PM = computePanels(page());
+    const P = panelFor(it, PM);
+    const r = it.rot || 0;
+    if (drag.t === 'move') {
+      const dx = p[0] - drag.p0[0], dy = p[1] - drag.p0[1];
+      if (!drag.moved && Math.hypot(dx, dy) * state.zoom < 3) return;
+      drag.moved = true; state.dragId = it.id;
+      it.x = drag.x0 + dx; it.y = drag.y0 + dy;
+      // snapping: centre of item to panel centre lines and to other items' centres (hold Ctrl to disable)
+      state.guides = [];
+      if (!e.ctrlKey && !e.metaKey) {
+        const th = 6 / state.zoom, cx = P.x + it.x, cy = P.y + it.y;
+        const xs = [[P.x + P.w / 2, P]], ys = [[P.y + P.h / 2, P]];
+        for (const o of page().items) {
+          if (o === it) continue;
+          const Q = panelFor(o, PM); xs.push([Q.x + o.x, Q]); ys.push([Q.y + o.y, Q]);
+        }
+        let bx = null, by = null;
+        for (const [x] of xs) if (Math.abs(x - cx) < th && (bx === null || Math.abs(x - cx) < Math.abs(bx - cx))) bx = x;
+        for (const [y] of ys) if (Math.abs(y - cy) < th && (by === null || Math.abs(y - cy) < Math.abs(by - cy))) by = y;
+        if (bx !== null) { it.x = bx - P.x; state.guides.push([bx, P.y, bx, P.y + P.h]); }
+        if (by !== null) { it.y = by - P.y; state.guides.push([P.x, by, P.x + P.w, by]); }
+      }
+    } else if (drag.t === 'corner') {
+      const v = rot(p[0] - drag.anchor[0], p[1] - drag.anchor[1], -r);
+      let w = Math.max(12, v[0] * drag.sx), h = Math.max(12, v[1] * drag.sy);
+      const keep = it.type === 'balloon' ? (it.style === 'sfx' ? !e.shiftKey : e.shiftKey) : !e.shiftKey;
+      if (keep) { const s = Math.max(w / drag.w0, h / drag.h0); w = drag.w0 * s; h = drag.h0 * s; }
+      it.w = w; it.h = h;
+      const cv = rot(drag.sx * w / 2, drag.sy * h / 2, r);
+      const c = [drag.anchor[0] + cv[0], drag.anchor[1] + cv[1]];
+      it.x = c[0] - P.x; it.y = c[1] - P.y;
+      if (it.type === 'balloon') {
+        const t = rot(drag.tip0[0] - c[0], drag.tip0[1] - c[1], -r); it.tx = t[0]; it.ty = t[1];
+        if (it.style === 'sfx') it.size = Math.max(8, Math.round(drag.size0 * h / drag.h0));
+        it.autoFit = false;
+      }
+    } else if (drag.t === 'rot') {
+      let a = Math.atan2(p[1] - drag.c[1], p[0] - drag.c[0]) * 180 / Math.PI + 90;
+      if (a > 180) a -= 360;
+      if (e.shiftKey) a = Math.round(a / 15) * 15; else if (Math.abs(a) < 4) a = 0;
+      it.rot = Math.round(a);
+    } else if (drag.t === 'tail') {
+      const t = rot(p[0] - drag.c[0], p[1] - drag.c[1], -r);
+      it.tx = t[0]; it.ty = t[1];
+    }
+    renderCanvas();
+  });
+
+  function endDrag() {
+    if (!drag) return;
+    const it = selItem();
+    if (it && drag.t === 'move' && drag.moved) {
+      const PM = computePanels(page()), P = panelFor(it, PM);
+      const c = [P.x + it.x, P.y + it.y];
+      const inside = PM.list.find(Q => c[0] >= Q.x && c[0] <= Q.x + Q.w && c[1] >= Q.y && c[1] <= Q.y + Q.h);
+      if (inside && inside.key !== P.key) { it.panel = inside.key; it.x = c[0] - inside.x; it.y = c[1] - inside.y; it.pw = inside.w; it.ph = inside.h; state.selPanel = inside.key; }
+    }
+    const changed = drag.t !== 'move' || drag.moved;
+    drag = null; state.dragId = null; state.guides = [];
+    if (changed) { commit(); renderCanvas(); renderInspector(); }
+  }
+  svg.addEventListener('dblclick', e => {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const g = el && el.closest && el.closest('.item');
+    const it = g && page().items.find(i => i.id === g.dataset.id);
+    if (it && it.type === 'balloon' && inlineId !== it.id) { state.sel = it.id; openInline(it); }
+  });
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+
+  // Ctrl + wheel zoom
+  $('#stageScroll').addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    setZoom(state.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
+  }, { passive: false });
+
+  function setZoom(z) { state.zoom = clamp(z, 0.2, 4); closeInline(true); renderCanvas(); }
+  function zoomFit() {
+    const sc = $('#stageScroll'), F = fmt();
+    const z = Math.min((sc.clientWidth - 60) / F.w, (sc.clientHeight - 60) / F.h);
+    setZoom(z > 0 ? z : 1);
+  }
+
+  // ------------------------------------------------------------------ inline balloon text editor
+  const inline = $('#inlineEditor');
+  let inlineId = null;
+  function openInline(it) {
+    const PM = computePanels(page()), P = panelFor(it, PM);
+    const inner = BAL.innerSize(it);
+    const z = state.zoom;
+    const w = Math.max(inner.w * z + 16, 140), h = Math.max(inner.h * z + 16, 50);
+    const sr = svg.getBoundingClientRect(), wr = $('#canvasWrap').getBoundingClientRect();
+    const cx = sr.left - wr.left + (P.x + it.x) * z, cy = sr.top - wr.top + (P.y + it.y) * z;
+    Object.assign(inline.style, {
+      left: (cx - w / 2) + 'px', top: (cy - h / 2) + 'px', width: w + 'px', height: h + 'px',
+      fontFamily: it.font, fontSize: (it.size * z) + 'px', fontWeight: it.bold ? 'bold' : 'normal', fontStyle: it.italic ? 'italic' : 'normal',
+      textAlign: it.align || 'center', textTransform: it.upper ? 'uppercase' : 'none', color: it.style === 'sfx' ? '#1d1d1d' : it.color
+    });
+    inline.value = it.text || '';
+    inline.hidden = false; inlineId = it.id;
+    inline.focus(); inline.select();
+  }
+  function closeInline(keep) {
+    if (!inlineId) return;
+    inline.hidden = true; inlineId = null;
+    if (keep) { commit(); renderInspector(); }
+  }
+  inline.addEventListener('input', () => {
+    const it = page().items.find(i => i.id === inlineId); if (!it) return;
+    it.text = inline.value;
+    if (it.autoFit !== false) refit(it);
+    renderCanvas();
+    const ta = $('#inspector textarea[data-k="text"]'); if (ta) ta.value = it.text;
+  });
+  inline.addEventListener('blur', () => closeInline(true));
+  inline.addEventListener('keydown', e => {
+    if (e.key === 'Escape' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); closeInline(true); }
+    e.stopPropagation();
+  });
+
+  function refit(it) {
+    const PM = computePanels(page()), P = panelFor(it, PM);
+    const r = it.rot || 0;
+    const c = [P.x + it.x, P.y + it.y];
+    const tv = rot(it.tx || 0, it.ty || 0, r);
+    const tip = [c[0] + tv[0], c[1] + tv[1]];
+    Object.assign(it, BAL.fit(it));
+    const t = rot(tip[0] - c[0], tip[1] - c[1], -r); it.tx = t[0]; it.ty = t[1];
+  }
+
+  // ------------------------------------------------------------------ library (left)
+  function thumbSvg(inner, w, h, pad = 6) { return `<svg viewBox="${-pad} ${-pad} ${w + 2 * pad} ${h + 2 * pad}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`; }
+  const figThumb = (char, pose, expr, extra = {}) => thumbSvg(FIG.draw(Object.assign({ char, pose, expr, fx: (FIG.POSES[pose].fxAuto || []), lw: 4.5 }, extra)), FIG.NW, FIG.NH, 4);
+  const objThumb = id => { const o = OBJ.OBJECTS[id]; return thumbSvg(`<g fill="none" stroke="#1d1d1d" stroke-width="${Math.max(3, Math.max(o.w, o.h) / 40)}" stroke-linecap="round" stroke-linejoin="round">${o.svg({})}</g>`, o.w, o.h); };
+  const sceneThumb = id => `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><rect width="400" height="300" fill="#fff"/><g fill="none" stroke="#3a3a3a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${OBJ.SCENES[id].svg()}</g></svg>`;
+  const balThumb = (style, text) => {
+    const it = { style, text: text || DEFAULT_TEXT[style], font: style === 'sfx' ? 'Impact, Arial Black, sans-serif' : 'Comic Sans MS, cursive', size: style === 'sfx' ? 34 : 16, bold: style === 'shout', italic: style === 'whisper', align: 'center', color: '#1d1d1d', fill: BAL.STYLES[style].fill, stroke: '#1d1d1d', lw: 2.5 };
+    Object.assign(it, BAL.fit(it)); it.tx = -it.w * 0.2; it.ty = it.h / 2 + 22;
+    const W = it.w + 30, H = it.h + 50;
+    return `<svg viewBox="${-W / 2} ${-it.h / 2 - 12} ${W} ${H}" preserveAspectRatio="xMidYMid meet">${BAL.draw(it)}</svg>`;
+  };
+
+  function thumbHtml(spec, svgHtml, label, cls = '') {
+    return `<div class="thumb ${cls}" draggable="true" data-spec='${esc(JSON.stringify(spec))}' title="${esc(label)}">${svgHtml}<span>${esc(label)}</span></div>`;
+  }
+
+  function renderLibrary() {
+    $$('.lib-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
+    let h = '';
+    if (state.tab === 'characters') {
+      const mine = readJSON(PRESET_KEY, []);
+      if (mine.length) {
+        h += `<div class="lib-section">My characters</div><div class="grid">`;
+        mine.forEach((m, i) => {
+          const spec = { kind: 'figure', char: m.char, pose: 'stand', expr: state.libExpr, style: m.style };
+          h += `<div class="thumb mine" draggable="true" data-spec='${esc(JSON.stringify(spec))}' title="${esc(m.name)}">${figThumb(m.char, 'stand', state.libExpr, m.style)}<span>${esc(m.name)}</span><button class="del-mine" data-delmine="${i}" title="Remove from My characters">×</button></div>`;
+        });
+        h += `</div>`;
+      }
+      h += `<div class="lib-section">Character</div><div class="grid small">`;
+      for (const [id, c] of Object.entries(FIG.CHARACTERS))
+        h += `<div class="thumb ${id === state.libChar ? 'sel' : ''}" data-libchar="${id}" title="${c.name}">${figThumb(id, 'stand', 'happy')}<span>${c.name}</span></div>`;
+      h += `</div><div class="lib-row"><span class="hint">Face</span><select id="libExpr">${Object.entries(FIG.EXPRESSIONS).map(([k, v]) => `<option value="${k}" ${k === state.libExpr ? 'selected' : ''}>${v}</option>`).join('')}</select></div>`;
+      h += `<div class="lib-section">${FIG.CHARACTERS[state.libChar].name} – poses</div><div class="grid">`;
+      for (const [pid, p] of Object.entries(FIG.POSES))
+        h += thumbHtml({ kind: 'figure', char: state.libChar, pose: pid, expr: state.libExpr }, figThumb(state.libChar, pid, state.libExpr), p.name);
+      h += `</div>`;
+    } else if (state.tab === 'objects') {
+      const cats = {};
+      for (const [id, o] of Object.entries(OBJ.OBJECTS)) (cats[o.cat] = cats[o.cat] || []).push([id, o]);
+      for (const [cat, list] of Object.entries(cats)) {
+        h += `<div class="lib-section">${cat}</div><div class="grid">`;
+        list.forEach(([id, o]) => h += thumbHtml({ kind: 'object', obj: id }, objThumb(id), o.name));
+        h += `</div>`;
+      }
+    } else if (state.tab === 'scenes') {
+      h += `<p class="hint" style="margin-top:0">Drop a scene on a panel to set its background. Fine-tune it in the <b>Panel</b> section on the right.</p><div class="grid wide">`;
+      for (const [id, s] of Object.entries(OBJ.SCENES)) h += thumbHtml({ kind: 'scene', scene: id }, sceneThumb(id), s.name);
+      h += `</div>`;
+    } else {
+      h += `<div class="lib-section">Balloons &amp; captions</div><div class="grid wide">`;
+      for (const [id, s] of Object.entries(BAL.STYLES)) h += thumbHtml({ kind: 'balloon', style: id }, balThumb(id), s.name);
+      h += `</div><div class="lib-section">Sound effects</div><div class="grid">`;
+      SFX_PRESETS.forEach(t => h += thumbHtml({ kind: 'balloon', style: 'sfx', text: t }, balThumb('sfx', t), t));
+      h += `</div><div class="lib-section">Quick speech</div><div class="grid">`;
+      ['HELLO', 'GRR!', '?!', 'Help!', 'Wow!', 'Oops...'].forEach(t => h += thumbHtml({ kind: 'balloon', style: t === 'GRR!' || t === 'Help!' ? 'shout' : 'speech', text: t }, balThumb(t === 'GRR!' || t === 'Help!' ? 'shout' : 'speech', t), t));
+      h += `</div>`;
+    }
+    $('#libBody').innerHTML = h;
+    const ex = $('#libExpr'); if (ex) ex.onchange = () => { state.libExpr = ex.value; renderLibrary(); };
+  }
+
+  $('.lib-tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.tab = b.dataset.tab; renderLibrary(); });
+  $('#libBody').addEventListener('click', e => {
+    const dm = e.target.closest('[data-delmine]');
+    if (dm) {
+      e.stopPropagation();
+      const mine = readJSON(PRESET_KEY, []); const m = mine[+dm.dataset.delmine];
+      if (m && confirm(`Remove "${m.name}" from My characters?`)) { mine.splice(+dm.dataset.delmine, 1); localStorage.setItem(PRESET_KEY, JSON.stringify(mine)); renderLibrary(); }
+      return;
+    }
+    const ch = e.target.closest('[data-libchar]');
+    if (ch) { state.libChar = ch.dataset.libchar; renderLibrary(); return; }
+    const t = e.target.closest('.thumb[data-spec]');
+    if (t) addFromSpec(JSON.parse(t.dataset.spec));
+  });
+  $('#libBody').addEventListener('dragstart', e => {
+    const t = e.target.closest('.thumb[data-spec]'); if (!t) return;
+    e.dataTransfer.setData('text/plain', t.dataset.spec);
+    e.dataTransfer.effectAllowed = 'copy';
+  });
+  const stageScroll = $('#stageScroll');
+  stageScroll.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; stageScroll.classList.add('drop-hover'); });
+  stageScroll.addEventListener('dragleave', e => { if (e.target === stageScroll) stageScroll.classList.remove('drop-hover'); });
+  stageScroll.addEventListener('drop', e => {
+    e.preventDefault(); stageScroll.classList.remove('drop-hover');
+    let spec; try { spec = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) { return; }
+    if (!spec || !spec.kind) return;
+    addFromSpec(spec, toPage(e));
+  });
+
+  // ------------------------------------------------------------------ inspector (right)
+  const opt = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${esc(k)}" ${k === cur ? 'selected' : ''}>${esc(typeof v === 'string' ? v : v.name)}</option>`).join('');
+  const range = (label, attr, key, val, min, max, step = 1, extra = '') => `<label class="row"><span class="lbl">${label}</span><input type="range" ${attr}="${key}" min="${min}" max="${max}" step="${step}" value="${val}" ${extra}><span class="val">${Math.round(val * 100) / 100}</span></label>`;
+  const color = (label, attr, key, val) => `<label class="row"><span class="lbl">${label}</span><input type="color" ${attr}="${key}" value="${val}"></label>`;
+  const check = (label, attr, key, val) => `<label class="row check"><input type="checkbox" ${attr}="${key}" ${val ? 'checked' : ''}> ${label}</label>`;
+
+  function renderInspector() {
+    const pg = page(), L = pg.layout, it = selItem();
+    let h = '';
+    if (it) h += itemInspector(it);
+    const PM = computePanels(pg);
+    const pk = state.selPanel && PM.map[state.selPanel] ? state.selPanel : null;
+    if (pk) h += panelInspector(pk);
+    h += `<div class="sec"><h3>Page layout<small>page ${state.page + 1} of ${doc.pages.length}</small></h3>
+      <div class="lib-section">Quick layouts</div>
+      <div class="layout-gallery">${LAYOUTS.map((p, i) => `<button data-act="preset" data-i="${i}" title="${esc(p.name)}">${layoutIcon(p)}</button>`).join('')}</div>
+      <label class="row"><span class="lbl">Rows</span><input type="number" min="1" max="10" data-l="rows" value="${L.rows}" data-rebuild>
+        <span class="lbl" style="width:auto">Panels / row</span><input type="number" min="1" max="10" data-l="allcols" value="${L.cols[0]}" data-rebuild></label>
+      <div class="rowcols"><span>Row</span><span>Panels (l→r)</span><span>Height</span>
+      ${L.cols.map((c, r) => `<span>${r + 1}</span><input type="number" min="1" max="10" data-row="${r}" data-rk="cols" value="${c}"><input type="number" min="0.2" max="5" step="0.1" data-row="${r}" data-rk="heights" value="${L.heights[r]}">`).join('')}</div>
+      <p class="hint">Click a panel to change its width, split it or merge it with the next one.</p>
+      <label class="row"><span class="lbl">Format</span><select data-doc="format" data-rebuild>${opt(FORMATS, doc.format)}</select></label>
+      <label class="row"><span class="lbl">This page</span><select data-pgfmt data-rebuild><option value="">Same as cartoon</option>${opt(FORMATS, pg.format || '')}</select></label>
+      ${range('Margin', 'data-l', 'margin', L.margin, 0, 120)}
+      ${range('Gutter', 'data-l', 'gutter', L.gutter, 0, 60)}
+      ${range('Border', 'data-l', 'border', L.border, 0, 14, 0.5)}
+      ${range('Corners', 'data-l', 'radius', L.radius, 0, 40)}
+      ${color('Border colour', 'data-l', 'borderColor', L.borderColor)}
+      ${color('Page colour', 'data-l', 'pageBg', L.pageBg)}
+      <label class="row"><span class="lbl">Page title</span><input type="text" data-l="title" value="${esc(L.title)}" placeholder="(none)"></label>
+      ${L.title ? range('Title size', 'data-l', 'titleSize', L.titleSize, 14, 90) + `<label class="row"><span class="lbl">Title font</span><select data-l="titleFont">${opt(BAL.FONTS, L.titleFont)}</select></label>` : ''}
+      ${check('Black &amp; white (whole cartoon)', 'data-doc', 'mono', doc.mono)}
+      <div class="btns"><button data-act="layoutAll" title="Copy this page's layout settings to every page">Use this layout on all pages</button></div>
+      <p class="hint">Tip: click an empty spot in a panel to select it and pick a scene. Press <b>?</b> at the top for help.</p>
+    </div>`;
+    $('#inspector').innerHTML = h;
+  }
+  function layoutIcon(p) {
+    const W = 40, H = 52, m = 3, g = 2.5, rows = p.cols.length, hs = p.heights || Array(rows).fill(1), hsum = hs.reduce((a, b) => a + b, 0);
+    let y = m, s = '';
+    for (let r = 0; r < rows; r++) {
+      const rh = (H - 2 * m - g * (rows - 1)) * hs[r] / hsum, n = p.cols[r], ws = (p.widths && p.widths[r]) || Array(n).fill(1), wsum = ws.reduce((a, b) => a + b, 0);
+      let x = m;
+      for (let c = 0; c < n; c++) { const cw = (W - 2 * m - g * (n - 1)) * ws[c] / wsum; s += `<rect x="${f(x)}" y="${f(y)}" width="${f(cw)}" height="${f(rh)}" rx="1"/>`; x += cw + g; }
+      y += rh + g;
+    }
+    return `<svg viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" rx="3" fill="#fff"/><g fill="#dfe6f3" stroke="#1d1d1d" stroke-width="1.2">${s}</g></svg>`;
+  }
+
+  function itemInspector(it) {
+    let h = `<div class="sec"><h3>${it.type === 'figure' ? FIG.CHARACTERS[it.char].name : it.type === 'object' ? OBJ.OBJECTS[it.obj].name : BAL.STYLES[it.style].name}<small>${it.locked ? '🔒 locked' : ''}</small></h3>`;
+    if (it.type === 'figure') {
+      h += `<label class="row"><span class="lbl">Character</span><select data-k="char" data-rebuild>${opt(FIG.CHARACTERS, it.char)}</select></label>`;
+      h += `<div class="lib-section">Pose</div><div class="grid small">${Object.entries(FIG.POSES).map(([pid, p]) => `<div class="thumb ${pid === it.pose ? 'sel' : ''}" data-setk="pose" data-v="${pid}" title="${p.name}">${figThumb(it.char, pid, it.expr, { handL: it.handL, handR: it.handR })}</div>`).join('')}</div>`;
+      h += `<div class="lib-section">Face</div><div class="grid small">${Object.entries(FIG.EXPRESSIONS).map(([k, v]) => `<div class="thumb ${k === it.expr ? 'sel' : ''}" data-setk="expr" data-v="${k}" title="${v}">${faceThumb(it, k)}</div>`).join('')}</div>`;
+      h += `<div class="lib-section">Effects</div><div class="fx-chips">${Object.entries(FIG.FX).map(([k, v]) => `<button data-fx="${k}" class="${(it.fx || []).includes(k) ? 'on' : ''}">${esc(v)}</button>`).join('')}</div>`;
+      const ch = FIG.CHARACTERS[it.char];
+      h += `<label class="row"><span class="lbl">Right hand</span><select data-k="handR">${opt(FIG.HAND_ITEMS, it.handR !== undefined ? it.handR : (ch.handR || 'none'))}</select></label>`;
+      h += `<label class="row"><span class="lbl">Left hand</span><select data-k="handL">${opt(FIG.HAND_ITEMS, it.handL !== undefined ? it.handL : (ch.handL || 'none'))}</select></label>`;
+      h += color('Line colour', 'data-k', 'color', it.color || '#1d1d1d');
+      h += `<label class="row"><span class="lbl">Clothes colour</span><input type="color" data-k="cloth" value="${it.cloth || '#ffffff'}"><button data-act="clearCloth" title="Back to default">Default</button></label>`;
+      h += `<label class="row"><span class="lbl">Hair colour</span><input type="color" data-k="hairColor" value="${it.hairColor || '#ffffff'}"><button data-act="clearHair" title="Back to default">Default</button></label>`;
+      h += range('Line width', 'data-k', 'lw', it.lw || 4, 1, 10, 0.5);
+      h += `<div class="btns"><button data-act="saveChar" title="Keep this look (character, colours, held items) in the library">★ Save as “My character”</button></div>`;
+    } else if (it.type === 'object') {
+      h += `<label class="row"><span class="lbl">Object</span><select data-k="obj" data-rebuild>${opt(OBJ.OBJECTS, it.obj)}</select></label>`;
+      h += color('Line colour', 'data-k', 'color', it.color || '#1d1d1d');
+      h += range('Line width', 'data-k', 'lw', it.lw || 3, 0.5, 10, 0.5);
+    } else {
+      h += `<label class="row"><span class="lbl">Style</span><select data-k="style" data-rebuild>${opt(BAL.STYLES, it.style)}</select></label>`;
+      h += `<textarea class="text-edit" data-k="text" placeholder="Type the text… *bold* _italic_">${esc(it.text)}</textarea>`;
+      h += `<label class="row"><span class="lbl">Font</span><select data-k="font">${opt(BAL.FONTS, it.font)}</select></label>`;
+      h += range('Text size', 'data-k', 'size', it.size, 8, 120);
+      h += `<div class="btns">
+        <button data-toggle="bold" class="${it.bold ? 'on' : ''}"><b>B</b></button>
+        <button data-toggle="italic" class="${it.italic ? 'on' : ''}"><i>I</i></button>
+        <button data-toggle="upper" class="${it.upper ? 'on' : ''}">ABC</button>
+        <button data-setk="align" data-v="left" class="${it.align === 'left' ? 'on' : ''}">⯇ Left</button>
+        <button data-setk="align" data-v="center" class="${(it.align || 'center') === 'center' ? 'on' : ''}">Center</button>
+        <button data-setk="align" data-v="right" class="${it.align === 'right' ? 'on' : ''}">Right ⯈</button></div>`;
+      h += it.style === 'sfx' ? color('Fill', 'data-k', 'fill', it.fill || '#ffd23c') + color('Outline', 'data-k', 'stroke', it.stroke || '#1d1d1d')
+        : color('Text colour', 'data-k', 'color', it.color || '#1d1d1d') + (it.style !== 'text' ? color('Balloon fill', 'data-k', 'fill', it.fill && it.fill !== 'none' ? it.fill : '#ffffff') + color('Outline', 'data-k', 'stroke', it.stroke || '#1d1d1d') + range('Outline width', 'data-k', 'lw', it.lw || 2.5, 0.5, 8, 0.5) : '');
+      if (BAL.STYLES[it.style].tail) {
+        h += check('Show tail', 'data-k', 'tail', it.tail !== false);
+        if (it.style !== 'thought' && it.style !== 'shout') h += range('Tail curve', 'data-k', 'bend', it.bend !== undefined ? it.bend : 0.4, -1.5, 1.5, 0.1);
+      }
+      h += check('Auto-size to text', 'data-k', 'autoFit', it.autoFit !== false);
+      h += `<div class="btns"><button data-act="fit">Fit balloon to text</button><button data-act="editInline">Edit on canvas</button></div>`;
+    }
+    // common
+    h += range('Rotation', 'data-k', 'rot', it.rot || 0, -180, 180);
+    h += range('Opacity', 'data-k', 'opacity', it.opacity != null ? it.opacity : 1, 0.1, 1, 0.05);
+    h += `<div class="btns">
+      ${it.type !== 'balloon' ? `<button data-act="flipX" class="${it.flipX ? 'on' : ''}" title="Flip horizontally (H)">⇆ Flip</button><button data-act="flipY" class="${it.flipY ? 'on' : ''}" title="Flip vertically (V)">⇅ Flip</button>` : `<button data-act="mirrorTail" title="Mirror the tail">⇆ Mirror tail</button>`}
+      <button data-act="bigger" title="Larger">＋ Size</button><button data-act="smaller" title="Smaller">－ Size</button></div>
+      <div class="btns"><button data-act="front" title="Bring to front">⤒ Front</button><button data-act="forward" title="Forward ( ] )">↑</button><button data-act="backward" title="Backward ( [ )">↓</button><button data-act="back" title="Send to back">⤓ Back</button></div>
+      ${check('Clip to panel border', 'data-k', 'clip', it.clip !== false)}
+      ${it.type !== 'balloon' ? check('Black &amp; white', 'data-k', 'mono', !!it.mono) : ''}
+      ${check('Lock (click-through)', 'data-k', 'locked', !!it.locked)}
+      <div class="btns"><button data-act="duplicate">Duplicate</button><button data-act="delete" class="danger">Delete</button></div></div>`;
+    return h;
+  }
+
+  function faceThumb(it, expr) {
+    // draw a plain (hat-less) head and crop the view around it
+    const char = FIG.CHARACTERS[it.char].prop === 'kid' ? 'boy' : 'man';
+    const [hx, hy, r] = FIG.headAt(char, 'stand');
+    const full = FIG.draw({ char: char === 'man' ? 'doctor' : 'baby', pose: 'stand', expr, lw: 4 });
+    const [hx2, hy2, r2] = FIG.headAt(char === 'man' ? 'doctor' : 'baby', 'stand');
+    const m = r2 * 1.5;
+    return `<svg viewBox="${hx2 - m} ${hy2 - m} ${2 * m} ${2 * m}">${full}</svg>`;
+  }
+
+  function panelInspector(key) {
+    const pd = page().panels[key] || {};
+    const items = page().items.filter(i => i.panel === key);
+    const [r, c] = key.split('-').map(Number);
+    const L = page().layout, n = L.cols[r];
+    let h = `<div class="sec"><h3>Panel ${r + 1}.${c + 1}<small>row ${r + 1}, panel ${c + 1}</small></h3>
+      ${n > 1 ? range('Width', 'data-pw', 'w', L.widths[r][c], 0.2, 5, 0.1) : ''}
+      <div class="btns"><button data-act="splitPanel" title="Split this panel in two (left / right)">⇹ Split</button>${c < n - 1 ? `<button data-act="mergePanel" title="Merge with the panel to the right">⇥ Merge right</button>` : ''}${n > 1 ? `<button data-act="evenWidths" title="Make all panels in this row equally wide">Even widths</button>` : ''}</div>
+      <label class="row"><span class="lbl">Scene</span><select data-p="scene">${opt(OBJ.SCENES, pd.scene || 'none')}</select></label>
+      ${range('Scene zoom', 'data-p', 'sceneZoom', pd.sceneZoom || 1, 0.5, 3, 0.05)}
+      ${range('Scene shift', 'data-p', 'sceneX', pd.sceneX || 0, -200, 200, 2)}
+      ${range('Scene fade', 'data-p', 'sceneOpacity', pd.sceneOpacity != null ? pd.sceneOpacity : 1, 0.1, 1, 0.05)}
+      ${check('Mirror scene', 'data-p', 'sceneFlip', !!pd.sceneFlip)}
+      ${check('Scene in black &amp; white', 'data-p', 'sceneMono', !!pd.sceneMono)}
+      ${color('Background', 'data-p', 'bg', pd.bg || '#ffffff')}
+      ${check('Hide border', 'data-p', 'noBorder', !!pd.noBorder)}
+      <div class="btns"><button data-act="sceneAll">Use scene on all panels</button><button data-act="copyNext" title="Copy scene and contents to the next panel – handy for the next moment in the same place">Copy to next panel</button><button data-act="clearPanel" class="danger">Empty panel</button></div>
+      <div class="lib-section">Layers in this panel (top first)</div>
+      <ul class="layers">${items.slice().reverse().map(i => `<li data-selid="${i.id}" class="${i.id === state.sel ? 'sel' : ''}"><span class="nm">${esc(itemLabel(i))}</span><button data-lock="${i.id}" title="Lock / unlock">${i.locked ? '🔒' : '🔓'}</button></li>`).join('') || '<li class="hint">Empty – drag something in!</li>'}</ul>
+    </div>`;
+    return h;
+  }
+  const itemLabel = i => i.type === 'figure' ? `${FIG.CHARACTERS[i.char].name} – ${FIG.POSES[i.pose].name}` : i.type === 'object' ? OBJ.OBJECTS[i.obj].name : `${BAL.STYLES[i.style].name}: “${(i.text || '').slice(0, 24)}”`;
+
+  const insp = $('#inspector');
+  function readInput(el) {
+    if (el.type === 'checkbox') return el.checked;
+    if (el.type === 'range' || el.type === 'number') return parseFloat(el.value);
+    return el.value;
+  }
+  function onInspectorInput(e) {
+    const el = e.target;
+    const pg = page(), L = pg.layout, it = selItem();
+    const v = readInput(el);
+    if (el.type === 'range') { const s = el.parentElement.querySelector('.val'); if (s) s.textContent = Math.round(v * 100) / 100; }
+    let rebuild = el.hasAttribute('data-rebuild');
+    if (el.dataset.k && it) {
+      const k = el.dataset.k;
+      if (k === 'opacity' || k === 'rot' || k === 'lw' || k === 'size' || k === 'bend') { if (isNaN(v)) return; }
+      it[k] = v;
+      if (k === 'char') { delete it.handL; delete it.handR; }
+      if (k === 'obj') { const o = OBJ.OBJECTS[v]; it.h = it.w * o.h / o.w; }
+      if (it.type === 'balloon' && ['text', 'size', 'font', 'style', 'upper'].includes(k) && it.autoFit !== false) refit(it);
+      if (k === 'style') { const S = BAL.STYLES[v]; it.tail = S.tail; if (v === 'sfx') { it.font = 'Impact, Arial Black, sans-serif'; it.fill = S.fill; it.size = Math.max(it.size, 36); } else if (it.fill === '#ffd23c' || v === 'caption' || it.fill === '#fff6c2') it.fill = S.fill; refit(it); }
+      if (k === 'autoFit' && v) refit(it);
+      if (k === 'locked' || k === 'tail') rebuild = true;
+    } else if (el.dataset.l) {
+      const k = el.dataset.l;
+      if (k === 'allcols') { if (!isNaN(v)) { L.cols = L.cols.map(() => v); normLayout(L); warnOrphans(pg); } }
+      else if (k === 'rows') { if (!isNaN(v)) { L.rows = v; normLayout(L); warnOrphans(pg); } }
+      else { L[k] = (el.type === 'range') ? v : v; if (k === 'title' && (!!v) !== (!!el.defaultValue)) rebuild = true; }
+    } else if (el.dataset.row !== undefined) {
+      if (isNaN(v)) return;
+      L[el.dataset.rk][+el.dataset.row] = v; normLayout(L);
+      if (el.dataset.rk === 'cols') { rebuild = false; warnOrphans(pg); }
+    } else if (el.dataset.pw) {
+      if (isNaN(v)) return;
+      const [r, c] = state.selPanel.split('-').map(Number);
+      L.widths[r][c] = v;
+    } else if (el.hasAttribute('data-pgfmt')) {
+      if (v) pg.format = v; else delete pg.format;
+      setTimeout(zoomFit, 0);
+    } else if (el.dataset.p) {
+      const key = state.selPanel;
+      pg.panels[key] = pg.panels[key] || {};
+      pg.panels[key][el.dataset.p] = v;
+    } else if (el.dataset.doc) {
+      doc[el.dataset.doc] = v;
+      if (el.dataset.doc === 'format') setTimeout(zoomFit, 0);
+    } else return;
+    renderCanvas();
+    if (rebuild && e.type === 'change') renderInspector();
+    else if (rebuild && el.tagName === 'SELECT') renderInspector();
+    commitSoon();
+  }
+  insp.addEventListener('input', onInspectorInput);
+  insp.addEventListener('change', e => {
+    const el = e.target;
+    if (el.hasAttribute('data-rebuild') && el.tagName !== 'SELECT') renderInspector();
+    if (el.dataset.row !== undefined || el.dataset.l === 'title' || el.dataset.k === 'locked' || el.dataset.k === 'tail') renderInspector();
+    commit();
+  });
+  insp.addEventListener('keydown', e => e.stopPropagation());
+  insp.addEventListener('click', e => {
+    const it = selItem();
+    const s = e.target.closest('[data-setk]');
+    if (s && it) { it[s.dataset.setk] = s.dataset.v; if (s.dataset.setk === 'pose') { const P = FIG.POSES[s.dataset.v]; it.fx = (it.fx || []).filter(x => x !== 'speed'); if (P.fxAuto) P.fxAuto.forEach(x => { if (!it.fx.includes(x)) it.fx.push(x); }); } commit(); renderCanvas(); renderInspector(); return; }
+    const t = e.target.closest('[data-toggle]');
+    if (t && it) { it[t.dataset.toggle] = !it[t.dataset.toggle]; if (it.autoFit !== false) refit(it); commit(); renderCanvas(); renderInspector(); return; }
+    const fx = e.target.closest('[data-fx]');
+    if (fx && it) { it.fx = it.fx || []; const k = fx.dataset.fx; it.fx = it.fx.includes(k) ? it.fx.filter(x => x !== k) : it.fx.concat(k); commit(); renderCanvas(); renderInspector(); return; }
+    const lk = e.target.closest('[data-lock]');
+    if (lk) { const i = page().items.find(x => x.id === lk.dataset.lock); if (i) { i.locked = !i.locked; commit(); renderCanvas(); renderInspector(); } e.stopPropagation(); return; }
+    const li = e.target.closest('[data-selid]');
+    if (li) { state.sel = li.dataset.selid; renderCanvas(); renderInspector(); return; }
+  });
+
+  // ------------------------------------------------------------------ actions
+  function cloneItem(it) { const c = JSON.parse(JSON.stringify(it)); c.id = uid(); return c; }
+  function layer(dir) {
+    const items = page().items, it = selItem(); if (!it) return;
+    const i = items.indexOf(it); items.splice(i, 1);
+    const j = dir === 'front' ? items.length : dir === 'back' ? 0 : clamp(i + (dir === 'forward' ? 1 : -1), 0, items.length);
+    items.splice(j, 0, it); commit(); renderCanvas(); renderInspector();
+  }
+  function resizeSel(k) {
+    const it = selItem(); if (!it) return;
+    it.w *= k; it.h *= k;
+    if (it.type === 'balloon') { it.tx *= k; it.ty *= k; it.size = Math.round(it.size * k * 10) / 10; }
+    commit(); renderCanvas(); renderInspector();
+  }
+  function deleteSel() {
+    const it = selItem(); if (!it) return;
+    page().items = page().items.filter(i => i !== it); state.sel = null;
+    commit(); renderCanvas(); renderInspector();
+  }
+  function duplicateSel() {
+    const it = selItem(); if (!it) return;
+    const c = cloneItem(it); c.x += 18; c.y += 18; page().items.push(c); state.sel = c.id;
+    commit(); renderCanvas(); renderInspector();
+  }
+  function download(blob, name) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  const fileBase = () => (doc.title || 'cartoon').replace(/[\\/:*?"<>|]+/g, '').trim() || 'cartoon';
+
+  function renderPageTabs() {
+    clearTimeout(thumbTimer);
+    $('#pageTabs').innerHTML = doc.pages.map((p, i) => {
+      const F = fmt(p);
+      return `<button data-page="${i}" draggable="true" class="page-thumb ${i === state.page ? 'active' : ''}" title="Page ${i + 1} – drag to reorder">
+        <svg viewBox="0 0 ${F.w} ${F.h}" style="aspect-ratio:${F.w}/${F.h}">${pageContent(p, { export: true, thumb: true })}</svg><span>${i + 1}</span></button>`;
+    }).join('');
+    $('#docTitle').value = doc.title || '';
+    const a = $('#pageTabs .active'); if (a) a.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+  $('#pageTabs').addEventListener('click', e => { const b = e.target.closest('[data-page]'); if (!b) return; goPage(+b.dataset.page); });
+  function goPage(i) {
+    if (i < 0 || i >= doc.pages.length) return;
+    state.page = i; state.sel = null; state.selPanel = null; closeInline(true); renderAll();
+    if (Math.abs(fmt().w * state.zoom - svg.clientWidth) > 2) zoomFit();
+  }
+  // drag page thumbnails to reorder
+  let pageDrag = null;
+  $('#pageTabs').addEventListener('dragstart', e => { const b = e.target.closest('[data-page]'); if (!b) return; pageDrag = +b.dataset.page; e.dataTransfer.setData('text/x-stickstudio-page', String(pageDrag)); e.dataTransfer.effectAllowed = 'move'; });
+  $('#pageTabs').addEventListener('dragover', e => { if (pageDrag === null) return; e.preventDefault(); const b = e.target.closest('[data-page]'); $$('.page-thumb').forEach(x => x.classList.toggle('drop-target', x === b)); });
+  $('#pageTabs').addEventListener('drop', e => {
+    if (pageDrag === null) return; e.preventDefault();
+    const b = e.target.closest('[data-page]'); const to = b ? +b.dataset.page : doc.pages.length - 1, from = pageDrag;
+    pageDrag = null;
+    if (to === from) { renderPageTabs(); return; }
+    const cur = doc.pages[state.page];
+    const [pg] = doc.pages.splice(from, 1); doc.pages.splice(to, 0, pg);
+    state.page = doc.pages.indexOf(cur); commit(); renderAll(); toast(`Moved page ${from + 1} to position ${to + 1}`);
+  });
+  $('#pageTabs').addEventListener('dragend', () => { pageDrag = null; $$('.page-thumb').forEach(x => x.classList.remove('drop-target')); });
+  $('#docTitle').addEventListener('input', e => { doc.title = e.target.value; commitSoon(); });
+
+  // ---- layout editing helpers
+  /** after a layout change: tell the user when items ended up in panels that no longer exist (with undo) */
+  function warnOrphans(pg) {
+    const PM = computePanels(pg);
+    const lost = pg.items.filter(i => !PM.map[i.panel]).length;
+    if (lost) toast(`${lost} item${lost > 1 ? 's were' : ' was'} in removed panels and got moved into the nearest panel.`, 6000, { label: 'Undo', fn: undo });
+  }
+  /** move items & panel settings to new keys while keeping their position on the page */
+  function remapPanels(pg, oldPM, keyMap) {
+    const PM = computePanels(pg), panels = {};
+    for (const [k, pd] of Object.entries(pg.panels)) { const nk = keyMap(k); if (nk && PM.map[nk] && !panels[nk]) panels[nk] = pd; }
+    pg.panels = panels;
+    for (const it of pg.items) {
+      const O = oldPM.map[it.panel]; if (!O) continue;
+      const nk = keyMap(it.panel), P = PM.map[nk]; if (!P) continue;
+      const ax = O.x + it.x, ay = O.y + it.y;
+      it.panel = nk; it.x = ax - P.x; it.y = ay - P.y; it.pw = P.w; it.ph = P.h;
+    }
+  }
+  const keyRC = k => k.split('-').map(Number);
+  function readingNext(pg, key) { const L = computePanels(pg).list; const i = L.findIndex(P => P.key === key); return i >= 0 && i < L.length - 1 ? L[i + 1].key : null; }
+
+  // ---- export dialog
+  function openExport(type) {
+    $('#exType').value = type; $('#pdfMono').checked = !!doc.mono; $('#pdfStatus').textContent = '';
+    $('#exName').value = fileBase(); syncExportDialog(); openModal('#modal');
+  }
+  function syncExportDialog() {
+    const t = $('#exType').value;
+    $('#rangeRow').hidden = $('#pdfPages').value !== 'range';
+    $('#dpiRow').hidden = t === 'vector';
+    $('#marksRow').hidden = t !== 'pdf';
+    $('#vectorHint').hidden = t !== 'vector';
+    $('#exGo').textContent = t === 'vector' ? 'Open print dialog' : t === 'pdf' ? 'Create PDF' : 'Export images';
+  }
+  ['#exType', '#pdfPages'].forEach(s => $(s).addEventListener('change', syncExportDialog));
+  /** "1-3, 5" → page objects (1-based, clamped, de-duplicated, in order) */
+  function parseRange(s) {
+    const n = doc.pages.length, set = new Set();
+    for (const part of String(s).split(/[,; ]+/).filter(Boolean)) {
+      const m = part.match(/^(\d+)(?:-(\d*))?$/); if (!m) throw new Error(`"${part}" is not a page number or range`);
+      const a = clamp(+m[1], 1, n), b = m[2] === undefined ? a : clamp(m[2] === '' ? n : +m[2], 1, n);
+      for (let i = Math.min(a, b); i <= Math.max(a, b); i++) set.add(i - 1);
+    }
+    if (!set.size) throw new Error('enter the pages to export, e.g. 1-3, 5');
+    return [...set].sort((a, b) => a - b).map(i => doc.pages[i]);
+  }
+  function exportPages() {
+    const w = $('#pdfPages').value;
+    return w === 'all' ? doc.pages : w === 'current' ? [page()] : parseRange($('#pdfRange').value);
+  }
+
+  // ---- modals
+  function openModal(sel) { $$('.modal').forEach(m => m.hidden = true); $(sel).hidden = false; const f = $(sel).querySelector('select, input, button.primary'); if (f) f.focus(); }
+  const anyModal = () => $$('.modal').some(m => !m.hidden);
+  function renderProjects() {
+    const idx = projIndex();
+    const when = t => { const d = new Date(t); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
+    $('#projectList').innerHTML = idx.map(p => `<li class="${p.id === doc.id ? 'current' : ''}"><div><b>${esc(p.title)}</b><small>${p.pages} page${p.pages > 1 ? 's' : ''} · ${when(p.updated)}${p.id === doc.id ? ' · open now' : ''}</small></div>
+      ${p.id === doc.id ? '' : `<button data-openproj="${p.id}" class="primary">Open</button>`}<button data-dupproj="${p.id}" title="Make a copy">Copy</button><button data-delproj="${p.id}" class="danger" title="Delete from this browser">Delete</button></li>`).join('') || '<li class="hint">No cartoons yet.</li>';
+  }
+  $('#projectList').addEventListener('click', e => {
+    const o = e.target.closest('[data-openproj]'), d = e.target.closest('[data-delproj]'), c = e.target.closest('[data-dupproj]');
+    if (o) {
+      const data = readJSON(PROJ_PREFIX + o.dataset.openproj, null);
+      if (!data) { toast('That project could not be found'); return; }
+      try { save(); loadDoc(data); $('#projectsModal').hidden = true; toast('Opened ' + (doc.title || 'cartoon')); } catch (err) { alert('Could not open: ' + err.message); }
+    } else if (c) {
+      const data = readJSON(PROJ_PREFIX + c.dataset.dupproj, null); if (!data) return;
+      save(); data.id = uid(); data.title = (data.title || 'Cartoon') + ' (copy)';
+      loadDoc(data); save(); renderProjects(); toast('Copy created and opened');
+    } else if (d) {
+      const id = d.dataset.delproj, p = projIndex().find(x => x.id === id);
+      if (!confirm(`Delete "${p ? p.title : 'this cartoon'}" from this browser? This cannot be undone.`)) return;
+      localStorage.removeItem(PROJ_PREFIX + id);
+      localStorage.setItem(INDEX_KEY, JSON.stringify(projIndex().filter(x => x.id !== id)));
+      if (id === doc.id) { doc = newDoc(); state.page = 0; state.sel = null; resetHistory(); renderAll(); zoomFit(); }
+      renderProjects();
+    }
+  });
+
+  const actions = {
+    new() {
+      if (commitTimer) commit();
+      save();
+      doc = newDoc(); state.page = 0; state.sel = null; state.selPanel = '0-0'; fileSnap = null; resetHistory(); renderAll(); zoomFit();
+      $$('.modal').forEach(m => m.hidden = true);
+      toast('New cartoon started – the previous one is in Projects');
+    },
+    projects() { if (commitTimer) commit(); renderProjects(); openModal('#projectsModal'); },
+    help() { openModal('#helpModal'); },
+    open() { $('#fileOpen').click(); },
+    save() {
+      if (commitTimer) commit();
+      download(new Blob([JSON.stringify(doc, null, 1)], { type: 'application/json' }), fileBase() + '.stickstudio.json');
+      markFileSaved(); toast('Project saved to your downloads');
+    },
+    undo, redo,
+    zoomIn() { setZoom(state.zoom * 1.2); }, zoomOut() { setZoom(state.zoom / 1.2); }, zoomFit,
+    png() { openExport('png'); },
+    pdf() { openExport('pdf'); },
+    print() { printPages(doc.pages, doc.mono); },
+    closeModal(b) { const m = b && b.closest ? b.closest('.modal') : null; if (m) m.hidden = true; else $$('.modal').forEach(x => x.hidden = true); },
+    doPdf() { runExport(); },
+    addPage() { doc.pages.splice(state.page + 1, 0, Object.assign(newPage(page().layout), page().format ? { format: page().format } : {})); state.page++; state.sel = null; commit(); renderAll(); },
+    dupPage() { const c = JSON.parse(JSON.stringify(page())); c.id = uid(); c.items.forEach(i => i.id = uid()); doc.pages.splice(state.page + 1, 0, c); state.page++; state.sel = null; commit(); renderAll(); },
+    delPage() {
+      if (doc.pages.length === 1) { toast('A cartoon needs at least one page'); return; }
+      if (!confirm(`Delete page ${state.page + 1}?`)) return;
+      doc.pages.splice(state.page, 1); state.page = clamp(state.page, 0, doc.pages.length - 1); state.sel = null; commit(); renderAll();
+      toast('Page deleted', 5000, { label: 'Undo', fn: undo });
+    },
+    pageLeft() { const i = state.page; if (i < 1) return; [doc.pages[i - 1], doc.pages[i]] = [doc.pages[i], doc.pages[i - 1]]; state.page--; commit(); renderAll(); },
+    pageRight() { const i = state.page; if (i >= doc.pages.length - 1) return; [doc.pages[i + 1], doc.pages[i]] = [doc.pages[i], doc.pages[i + 1]]; state.page++; commit(); renderAll(); },
+    preset(b) {
+      const p = LAYOUTS[+b.dataset.i], L = page().layout;
+      L.rows = p.cols.length; L.cols = p.cols.slice(); L.heights = (p.heights || p.cols.map(() => 1)).slice();
+      L.widths = p.widths ? JSON.parse(JSON.stringify(p.widths)) : [];
+      normLayout(L); warnOrphans(page()); state.selPanel = null; commit(); renderAll();
+    },
+    layoutAll() {
+      const src = page();
+      doc.pages.forEach(pg => { if (pg === src) return; const t = pg.layout.title; pg.layout = JSON.parse(JSON.stringify(src.layout)); pg.layout.title = t; if (src.format) pg.format = src.format; else delete pg.format; });
+      commit(); renderAll(); toast(`Layout copied to all ${doc.pages.length} pages (page titles kept)`, 4000, { label: 'Undo', fn: undo });
+    },
+    splitPanel() {
+      const pg = page(), [r, c] = keyRC(state.selPanel), L = pg.layout;
+      if (L.cols[r] >= 10) { toast('A row can have at most 10 panels'); return; }
+      const old = computePanels(pg), w = L.widths[r][c];
+      L.cols[r]++; L.widths[r].splice(c, 1, w / 2, w / 2);
+      remapPanels(pg, old, k => { const [rr, cc] = keyRC(k); return rr === r && cc > c ? `${rr}-${cc + 1}` : k; });
+      commit(); renderAll();
+    },
+    mergePanel() {
+      const pg = page(), [r, c] = keyRC(state.selPanel), L = pg.layout;
+      if (c >= L.cols[r] - 1) return;
+      const old = computePanels(pg);
+      L.widths[r].splice(c, 2, L.widths[r][c] + L.widths[r][c + 1]); L.cols[r]--;
+      remapPanels(pg, old, k => { const [rr, cc] = keyRC(k); return rr === r && cc > c ? `${rr}-${cc - 1}` : k; });
+      commit(); renderAll();
+    },
+    evenWidths() { const [r] = keyRC(state.selPanel), L = page().layout; L.widths[r] = L.widths[r].map(() => 1); commit(); renderAll(); },
+    copyNext() {
+      const pg = page(), from = state.selPanel, to = readingNext(pg, from);
+      if (!to) { toast('This is the last panel on the page – add a page or a panel first'); return; }
+      const PM = computePanels(pg), P = PM.map[from], Q = PM.map[to];
+      if (pg.panels[from]) pg.panels[to] = JSON.parse(JSON.stringify(pg.panels[from]));
+      pg.items.filter(i => i.panel === from).forEach(i => { panelFor(i, PM); const c = cloneItem(i); c.panel = to; c.pw = P.w; c.ph = P.h; pg.items.push(c); });
+      void Q; state.selPanel = to; state.sel = null; commit(); renderAll(); toast('Copied to the next panel');
+    },
+    saveChar() {
+      const it = selItem(); if (!it || it.type !== 'figure') return;
+      const name = prompt('Name for this character:', FIG.CHARACTERS[it.char].name); if (!name) return;
+      const style = {}; ['cloth', 'hairColor', 'handL', 'handR', 'color', 'lw'].forEach(k => { if (it[k] !== undefined) style[k] = it[k]; });
+      const mine = readJSON(PRESET_KEY, []); mine.push({ name: name.slice(0, 30), char: it.char, style });
+      localStorage.setItem(PRESET_KEY, JSON.stringify(mine));
+      state.tab = 'characters'; renderLibrary(); toast(`"${name}" added to My characters`);
+    },
+    flipX() { const it = selItem(); if (it) { it.flipX = !it.flipX; commit(); renderCanvas(); renderInspector(); } },
+    flipY() { const it = selItem(); if (it) { it.flipY = !it.flipY; commit(); renderCanvas(); renderInspector(); } },
+    mirrorTail() { const it = selItem(); if (it) { it.tx = -it.tx; commit(); renderCanvas(); } },
+    bigger() { resizeSel(1.1); }, smaller() { resizeSel(1 / 1.1); },
+    front() { layer('front'); }, back() { layer('back'); }, forward() { layer('forward'); }, backward() { layer('backward'); },
+    duplicate: duplicateSel, delete: deleteSel,
+    fit() { const it = selItem(); if (it) { refit(it); commit(); renderCanvas(); } },
+    editInline() { const it = selItem(); if (it) openInline(it); },
+    clearCloth() { const it = selItem(); if (it) { delete it.cloth; commit(); renderCanvas(); renderInspector(); } },
+    clearHair() { const it = selItem(); if (it) { delete it.hairColor; commit(); renderCanvas(); renderInspector(); } },
+    sceneAll() {
+      const pg = page(), src = pg.panels[state.selPanel] || {};
+      computePanels(pg).list.forEach(P => { pg.panels[P.key] = Object.assign(pg.panels[P.key] || {}, { scene: src.scene, sceneZoom: src.sceneZoom, sceneOpacity: src.sceneOpacity, sceneFlip: src.sceneFlip, sceneX: src.sceneX }); });
+      commit(); renderCanvas(); toast('Scene applied to all panels');
+    },
+    clearPanel() {
+      if (!confirm('Remove everything in this panel?')) return;
+      const pg = page(); pg.items = pg.items.filter(i => i.panel !== state.selPanel); delete pg.panels[state.selPanel];
+      state.sel = null; commit(); renderAll();
+    },
+  };
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const fn = actions[b.dataset.act]; if (fn) fn(b);
+  });
+
+  $('#fileOpen').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    try {
+      const d = JSON.parse(await file.text());
+      save(); // keep the current cartoon in Projects
+      const existing = d && d.id && projIndex().find(p => p.id === d.id);
+      if (existing && d.id !== doc.id && !confirm(`"${existing.title}" is already in Projects. Replace that copy with the file's contents?\n\n(Cancel opens the file as a separate copy.)`)) d.id = uid();
+      loadDoc(d, true); save(); toast('Opened ' + file.name);
+    } catch (err) { alert('Could not open this file: ' + (err instanceof SyntaxError ? 'it is not a valid project file' : err.message)); }
+  });
+  // drop a .json project file anywhere to open it
+  document.addEventListener('dragover', e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) e.preventDefault(); });
+  document.addEventListener('drop', e => {
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+    e.preventDefault();
+    if (!/\.json$/i.test(file.name)) { toast('Drop a StickStudio .json project file to open it'); return; }
+    const dt = new DataTransfer(); dt.items.add(file); $('#fileOpen').files = dt.files; $('#fileOpen').dispatchEvent(new Event('change'));
+  });
+
+  // ------------------------------------------------------------------ keyboard
+  document.addEventListener('keydown', e => {
+    const ctrl = e.ctrlKey || e.metaKey, key = e.key.toLowerCase();
+    if (anyModal()) { if (e.key === 'Escape') $$('.modal').forEach(m => m.hidden = true); else if (e.key === 'Enter' && !$('#modal').hidden && e.target.tagName !== 'BUTTON') runExport(); return; }
+    // app-wide shortcuts (work even while typing in a field)
+    if (ctrl && key === 's') { e.preventDefault(); actions.save(); return; }
+    if (ctrl && key === 'o') { e.preventDefault(); actions.open(); return; }
+    if (ctrl && key === 'p') { e.preventDefault(); actions.print(); return; }
+    if (ctrl && key === 'e') { e.preventDefault(); actions.pdf(); return; }
+    if (e.key === 'F1') { e.preventDefault(); actions.help(); return; }
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    const it = selItem();
+    if (ctrl && key === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if (ctrl && key === 'y') { e.preventDefault(); redo(); return; }
+    if (ctrl && key === 'a') { e.preventDefault(); return; }
+    if (ctrl && key === 'd') { e.preventDefault(); duplicateSel(); return; }
+    if (e.key === 'PageDown') { e.preventDefault(); goPage(state.page + 1); return; }
+    if (e.key === 'PageUp') { e.preventDefault(); goPage(state.page - 1); return; }
+    if (e.key === '?') { actions.help(); return; }
+    if (ctrl && e.key.toLowerCase() === 'c' && it) { state.clipboard = JSON.stringify(it); toast('Copied'); return; }
+    if (ctrl && e.key.toLowerCase() === 'v' && state.clipboard) {
+      const c = JSON.parse(state.clipboard); c.id = uid();
+      const PM = computePanels(page());
+      if (state.selPanel && PM.map[state.selPanel] && state.selPanel !== c.panel) c.panel = state.selPanel; else { c.x += 18; c.y += 18; }
+      page().items.push(c); state.sel = c.id; commit(); renderCanvas(); renderInspector(); return;
+    }
+    if (!it) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSel(); }
+    else if (e.key === 'Escape') { state.sel = null; renderCanvas(); renderInspector(); }
+    else if (e.key.startsWith('Arrow')) {
+      e.preventDefault(); const d = e.shiftKey ? 10 : 1;
+      if (e.key === 'ArrowLeft') it.x -= d; if (e.key === 'ArrowRight') it.x += d;
+      if (e.key === 'ArrowUp') it.y -= d; if (e.key === 'ArrowDown') it.y += d;
+      renderCanvas(); commitSoon();
+    }
+    else if (e.key.toLowerCase() === 'h') actions.flipX();
+    else if (e.key.toLowerCase() === 'v') actions.flipY();
+    else if (e.key === ']') layer('forward');
+    else if (e.key === '[') layer('backward');
+    else if (e.key === 'Enter' && it.type === 'balloon') { e.preventDefault(); openInline(it); }
+  });
+
+  // ------------------------------------------------------------------ export
+  function pageSvgString(pg, scale, mono) {
+    const F = fmt(pg);
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(F.w * scale)}" height="${Math.round(F.h * scale)}" viewBox="0 0 ${F.w} ${F.h}">${pageContent(pg, { export: true, mono })}</svg>`;
+  }
+  function rasterize(pg, scale, mono) {
+    return new Promise((resolve, reject) => {
+      const F = fmt(pg);
+      const blob = new Blob([pageSvgString(pg, scale, mono)], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = Math.round(F.w * scale); c.height = Math.round(F.h * scale);
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url); resolve(c);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Rendering failed')); };
+      img.src = url;
+    });
+  }
+  const canvasBytes = (c, type, q) => new Promise((res, rej) => c.toBlob(b => b ? b.arrayBuffer().then(a => res(new Uint8Array(a))) : rej(new Error('Image too large for this browser')), type, q));
+  const tick = () => new Promise(r => setTimeout(r, 20));
+  async function makePdf(pages, dpi, mono, progress = () => {}, marks = false) {
+    const scale = dpi / 96;
+    const out = [];
+    for (let i = 0; i < pages.length; i++) {
+      progress(`Rendering page ${i + 1} of ${pages.length}…`);
+      await tick();
+      const F = fmt(pages[i]);
+      const c = await rasterize(pages[i], scale, mono);
+      const jpeg = await canvasBytes(c, 'image/jpeg', 0.93);
+      out.push({ jpeg, imgW: c.width, imgH: c.height, ptW: F.w * 0.75, ptH: F.h * 0.75, marks });
+    }
+    progress('Building PDF…');
+    return PDF.build(out, doc.title);
+  }
+  async function makeZip(pages, dpi, mono, base, progress) {
+    const files = [];
+    for (let i = 0; i < pages.length; i++) {
+      progress(`Rendering page ${i + 1} of ${pages.length}…`); await tick();
+      const c = await rasterize(pages[i], dpi / 96, mono);
+      files.push({ name: `${base}-page${String(doc.pages.indexOf(pages[i]) + 1).padStart(2, '0')}.png`, data: await canvasBytes(c, 'image/png') });
+    }
+    progress('Packing ZIP…');
+    return PDF.zip(files);
+  }
+  async function makeStrip(pages, dpi, mono, progress) {
+    // all pages stacked vertically; scale is reduced if the image would exceed browser canvas limits
+    const gapPx = 24, MAXH = 30000, MAXW = 8000;
+    let scale = dpi / 96;
+    const totH = pages.reduce((a, p) => a + fmt(p).h, 0), maxW = Math.max(...pages.map(p => fmt(p).w));
+    scale = Math.min(scale, (MAXH - gapPx * (pages.length - 1)) / totH, MAXW / maxW);
+    const W = Math.round(maxW * scale), H = Math.round(totH * scale) + gapPx * (pages.length - 1);
+    const out = document.createElement('canvas'); out.width = W; out.height = H;
+    const g = out.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+    let y = 0;
+    for (let i = 0; i < pages.length; i++) {
+      progress(`Rendering page ${i + 1} of ${pages.length}…`); await tick();
+      const c = await rasterize(pages[i], scale, mono);
+      g.drawImage(c, Math.round((W - c.width) / 2), y); y += c.height + gapPx;
+    }
+    progress('Encoding image…');
+    return new Blob([await canvasBytes(out, 'image/png')], { type: 'image/png' });
+  }
+  /** vector "PDF": print the SVG pages through the browser's print dialog (Save as PDF keeps text as text) */
+  function printPages(pages, mono) {
+    const old = $('#printFrame'); if (old) old.remove();
+    const fr = document.createElement('iframe'); fr.id = 'printFrame';
+    Object.assign(fr.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0' });
+    document.body.appendChild(fr);
+    const sizes = {};
+    const body = pages.map(pg => {
+      const F = fmt(pg), name = 'p' + F.w + 'x' + F.h; sizes[name] = F;
+      return `<div class="pg" style="page:${name};width:${F.w * 0.75}pt;height:${F.h * 0.75}pt"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${F.w} ${F.h}" width="100%" height="100%">${pageContent(pg, { export: true, mono })}</svg></div>`;
+    }).join('');
+    const css = Object.entries(sizes).map(([n, F]) => `@page ${n} { size: ${F.w * 0.75}pt ${F.h * 0.75}pt; margin: 0; }`).join('\n');
+    const d = fr.contentDocument;
+    d.open();
+    d.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(fileBase())}</title><style>${css}\n@page { margin: 0; } html,body{margin:0;padding:0} .pg{break-after:page;overflow:hidden} .pg:last-child{break-after:auto} *{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>${body}</body></html>`);
+    d.close();
+    setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { alert('Printing failed: ' + e.message); } }, 250);
+  }
+  async function runExport() {
+    const status = $('#pdfStatus'), btn = $('#exGo');
+    const type = $('#exType').value, dpi = +$('#pdfDpi').value, mono = $('#pdfMono').checked;
+    const base = ($('#exName').value || fileBase()).replace(/[\\/:*?"<>|]+/g, '').replace(/\.(pdf|png|zip)$/i, '').trim() || 'cartoon';
+    let pages;
+    try { pages = exportPages(); } catch (err) { status.textContent = '⚠ ' + err.message; return; }
+    const prog = t => status.textContent = t;
+    btn.disabled = true;
+    try {
+      if (type === 'vector') { $('#modal').hidden = true; printPages(pages, mono); return; }
+      if (type === 'pdf') download(await makePdf(pages, dpi, mono, prog, $('#pdfMarks').checked), base + '.pdf');
+      else if (type === 'zip') download(await makeZip(pages, dpi, mono, base, prog), base + '.zip');
+      else if (type === 'strip') download(await makeStrip(pages, dpi, mono, prog), base + '-strip.png');
+      else {
+        for (let i = 0; i < pages.length; i++) {
+          prog(`Rendering page ${i + 1} of ${pages.length}…`); await tick();
+          const c = await rasterize(pages[i], dpi / 96, mono);
+          download(new Blob([await canvasBytes(c, 'image/png')], { type: 'image/png' }), pages.length > 1 || doc.pages.length > 1 ? `${base}-page${doc.pages.indexOf(pages[i]) + 1}.png` : base + '.png');
+          if (pages.length > 1) await new Promise(r => setTimeout(r, 350)); // browsers throttle rapid downloads
+        }
+      }
+      status.textContent = 'Done! Check your downloads.';
+      setTimeout(() => { $('#modal').hidden = true; }, 900);
+    } catch (err) { status.textContent = 'Export failed: ' + err.message; }
+    finally { btn.disabled = false; }
+  }
+
+  // ------------------------------------------------------------------ demo cartoon
+  function demoDoc() {
+    doc = newDoc();
+    doc.title = 'The Dragon Problem';
+    const pg = page();
+    pg.layout.title = 'The Dragon Problem';
+    const PM = computePanels(pg);
+    const put = (key, spec, fx, fy, extra = {}) => {
+      const P = PM.map[key];
+      const it = makeItem(spec, P, [P.x + fx * P.w, P.y + fy * P.h]);
+      Object.assign(it, extra);
+      delete it.k; delete it.gy;
+      if (it.type === 'balloon' && extra.text) Object.assign(it, BAL.fit(it));
+      if (extra.k) { it.w *= extra.k; it.h *= extra.k; }
+      if (extra.gy) it.y = extra.gy * P.h - (it.type === 'figure' ? (FIG.GROUND - FIG.NH / 2) * it.h / FIG.NH : it.h / 2);
+      pg.items.push(it); return it;
+    };
+    // the scenes' ground sits at 250/300 of their height (bottom-anchored, so the same in any panel)
+    const GY = 0.84;
+    pg.panels['0-0'] = { scene: 'throneroom', sceneOpacity: 0.55 };
+    pg.panels['0-1'] = { scene: 'forest', sceneOpacity: 0.6 };
+    pg.panels['1-0'] = { scene: 'mountains', sceneOpacity: 0.6 };
+    pg.panels['1-1'] = { scene: 'room', sceneOpacity: 0.6 };
+    // panel 1
+    const aim = (b, fig, dx = 0) => { // point a balloon's tail at a figure's head
+      const [hx, hy] = FIG.headAt(fig.char, fig.pose);
+      const sx = fig.w / FIG.NW, sy = fig.h / FIG.NH;
+      const tx = fig.x + (fig.flipX ? -1 : 1) * (hx - FIG.NW / 2) * sx + dx, ty = fig.y + (hy - FIG.NH / 2) * sy - 26 * sy;
+      b.tx = tx - b.x; b.ty = ty - b.y;
+    };
+    // panel 1
+    const king = put('0-0', { kind: 'figure', char: 'king', pose: 'point', expr: 'angry' }, 0.72, 0, { gy: GY, flipX: true });
+    put('0-0', { kind: 'figure', char: 'knight', pose: 'kneel', expr: 'happy' }, 0.27, 0, { gy: GY });
+    const b1 = put('0-0', { kind: 'balloon', style: 'speech' }, 0.52, 0.17, { text: 'Sir Kevin! Slay the *dragon* by Friday!' });
+    aim(b1, king);
+    // panel 2
+    const k2 = put('0-1', { kind: 'figure', char: 'knight', pose: 'walk', expr: 'neutral' }, 0.42, 0, { gy: GY, handR: 'spear' });
+    const b2 = put('0-1', { kind: 'balloon', style: 'thought' }, 0.55, 0.17, { text: 'I hope it is a small one...' });
+    aim(b2, k2);
+    // panel 3
+    put('1-0', { kind: 'object', obj: 'dragon' }, 0.68, 0, { gy: GY, flipX: true, k: 1.1 });
+    put('1-0', { kind: 'figure', char: 'knight', pose: 'panic', expr: 'scared' }, 0.2, 0, { gy: GY, flipX: true, fx: ['sweat'] });
+    put('1-0', { kind: 'object', obj: 'speed' }, 0.42, 0.6, { k: 0.9 });
+    put('1-0', { kind: 'balloon', style: 'sfx', text: 'ROAR!' }, 0.68, 0.14, { rot: 8 });
+    // panel 4 – seat the knight on the chair
+    const P4 = PM.map['1-1'];
+    const chair = put('1-1', { kind: 'object', obj: 'chair' }, 0.4, 0, { gy: GY, k: 1.1 });
+    const k4 = put('1-1', { kind: 'figure', char: 'knight', pose: 'sit', expr: 'smirk' }, 0.4, 0, { handR: 'cup', handL: 'none' });
+    const cs = chair.w / OBJ.OBJECTS.chair.w, fs = k4.w / FIG.NW;
+    const seat = [chair.x - chair.w / 2 + 18 * cs, chair.y - chair.h / 2 + 61 * cs];
+    const [hx, hy] = FIG.hipAt('knight', 'sit');
+    k4.x = seat[0] - (hx - FIG.NW / 2) * fs; k4.y = seat[1] - (hy - FIG.NH / 2) * fs - 3;
+    put('1-1', { kind: 'balloon', style: 'caption', text: 'Meanwhile, back home...' }, 0.3, 0.08, { align: 'left' });
+    const b4 = put('1-1', { kind: 'balloon', style: 'speech' }, 0.62, 0.3, { text: 'Dragons are *overrated*.' });
+    aim(b4, k4);
+    void P4;
+    return doc;
+  }
+
+  // ------------------------------------------------------------------ boot
+  function boot() {
+    let loaded = null;
+    try { loaded = migrateDoc(JSON.parse(localStorage.getItem(STORE_KEY) || 'null')); } catch (e) { loaded = null; }
+    if (loaded) doc = loaded; else demoDoc();
+    history = []; hIndex = -1; commit();
+    renderLibrary(); renderAll(); afterChange();
+    requestAnimationFrame(zoomFit);
+    window.addEventListener('resize', () => { clearTimeout(boot.rt); boot.rt = setTimeout(zoomFit, 150); });
+    window.addEventListener('beforeunload', () => { if (commitTimer) commit(); });
+    if (!localStorage.getItem(HELP_KEY)) { try { localStorage.setItem(HELP_KEY, '1'); } catch (e) { /* ignore */ } openModal('#helpModal'); }
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(boot); else boot();
+
+  window.StickStudio = { get doc() { return doc; }, state, renderAll, makePdf, rasterize, _migrate: migrateDoc };
+})();
+
+</script>
+</body>
+</html>
