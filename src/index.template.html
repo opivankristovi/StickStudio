@@ -9,48 +9,66 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><svg viewBox="0 0 40 40" width="28" height="28"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="20" cy="9" r="6" fill="#fff"/><path d="M20,15 V27 M20,27 L13,37 M20,27 L27,37 M20,19 L11,14 M20,19 L30,12"/></g></svg>StickStudio</div>
-  <input id="docTitle" class="title-input" type="text" spellcheck="false" title="Cartoon title (used as the PDF file name)">
-  <span id="dirtyMark" class="dirty-mark" title="Changes not yet saved to a file (your work is still kept in the browser)" hidden>●</span>
-  <div class="tb-group">
-    <button data-act="new" title="New cartoon (the current one stays in Projects)">New</button>
-    <button data-act="projects" title="Your recent cartoons stored in this browser">Projects</button>
-    <button data-act="open" title="Open a project file (.json) – Ctrl+O">Open</button>
-    <button data-act="save" title="Save project as a .json file – Ctrl+S">Save</button>
+  <div class="brand"><svg viewBox="0 0 40 40" width="26" height="26"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="20" cy="9" r="6" fill="#fff"/><path d="M20,15 V27 M20,27 L13,37 M20,27 L27,37 M20,19 L11,14 M20,19 L30,12"/></g></svg><span>StickStudio</span></div>
+  <div class="tb-group app-file">
+    <button class="ibtn" data-act="new" data-icon="new" data-tip="New cartoon" data-sub="The current one stays in Projects"></button>
+    <button class="ibtn" data-act="projects" data-icon="projects" data-tip="Projects" data-sub="Your cartoons stored in this browser"></button>
+    <button class="ibtn" data-act="open" data-icon="open" data-tip="Open project file" data-key="Ctrl+O"></button>
+    <button class="ibtn" data-act="save" data-icon="save" data-tip="Save project file" data-key="Ctrl+S"></button>
     <input type="file" id="fileOpen" accept=".json,application/json" hidden>
   </div>
   <div class="tb-group">
-    <button data-act="undo" id="btnUndo" title="Undo (Ctrl+Z)">↶ Undo</button>
-    <button data-act="redo" id="btnRedo" title="Redo (Ctrl+Y)">↷ Redo</button>
+    <button class="ibtn" data-act="undo" id="btnUndo" data-icon="undo" data-tip="Undo" data-key="Ctrl+Z"></button>
+    <button class="ibtn" data-act="redo" id="btnRedo" data-icon="redo" data-tip="Redo" data-key="Ctrl+Y"></button>
   </div>
-  <div class="tb-group">
-    <button data-act="zoomOut" title="Zoom out">−</button>
-    <span id="zoomLabel" class="zoom-label">100%</span>
-    <button data-act="zoomIn" title="Zoom in">+</button>
-    <button data-act="zoomFit" title="Fit page to window">Fit</button>
+  <div class="title-wrap">
+    <input id="docTitle" class="title-input" type="text" spellcheck="false" aria-label="Cartoon title" title="Cartoon title (also used as the file name)">
+    <span id="dirtyMark" class="dirty-mark" title="Changes not yet saved to a file (your work is still kept in the browser)" hidden>●</span>
   </div>
-  <div class="spacer"></div>
-  <div class="tb-group">
-    <button data-act="help" title="Help &amp; keyboard shortcuts (F1)">?</button>
-    <button data-act="print" title="Print (Ctrl+P)">Print</button>
-    <button data-act="png" title="Export images (PNG, ZIP, long strip)">Images</button>
-    <button data-act="pdf" class="primary" title="Export the finished cartoon as PDF (Ctrl+E)">Export PDF</button>
+  <div class="tb-group tb-right">
+    <div class="app-extra">
+      <button class="ibtn" data-act="help" data-icon="help" data-tip="Help &amp; shortcuts" data-key="F1"></button>
+      <button class="ibtn" data-act="print" data-icon="print" data-tip="Print" data-key="Ctrl+P"></button>
+      <button class="ibtn" data-act="png" data-icon="image" data-tip="Export images" data-sub="PNG, ZIP or one long strip"></button>
+    </div>
+    <!-- narrow screens: the file buttons, Help, Print and Images move into this menu -->
+    <div class="app-more">
+      <button class="ibtn" data-appmore data-icon="more" data-tip="More" aria-haspopup="true" aria-expanded="false" aria-controls="appMenu"></button>
+      <div id="appMenu" class="app-menu" role="menu" aria-label="More" hidden>
+        <button role="menuitem" data-act="new" data-mi="new">New cartoon</button>
+        <button role="menuitem" data-act="projects" data-mi="projects">Projects</button>
+        <button role="menuitem" data-act="open" data-mi="open">Open file…<kbd>Ctrl+O</kbd></button>
+        <button role="menuitem" data-act="save" data-mi="save">Save file<kbd>Ctrl+S</kbd></button>
+        <hr>
+        <button role="menuitem" data-act="print" data-mi="print">Print<kbd>Ctrl+P</kbd></button>
+        <button role="menuitem" data-act="png" data-mi="image">Export images</button>
+        <hr>
+        <button role="menuitem" data-act="help" data-mi="help">Help &amp; shortcuts<kbd>F1</kbd></button>
+      </div>
+    </div>
+    <button data-act="pdf" class="primary with-icon" data-icon-left="export" data-tip="Export the finished cartoon as PDF" data-key="Ctrl+E" aria-label="Export"><span class="btn-txt">Export</span></button>
   </div>
 </header>
+<div id="toolbar" class="toolbar" role="toolbar" aria-label="Edit the selection"></div>
 
 <main class="main">
-  <aside class="library">
-    <nav class="lib-tabs">
-      <button data-tab="characters" class="active">Characters</button>
-      <button data-tab="objects">Objects</button>
-      <button data-tab="scenes">Scenes</button>
-      <button data-tab="balloons">Balloons</button>
+  <aside class="library" id="library" aria-label="Library">
+    <!-- phones: the library is a sheet that slides up from the bottom (opened with the + button on the canvas) -->
+    <div class="sheet-head"><span class="sheet-grip" aria-hidden="true"></span><b>Add to the page</b><button class="ibtn" data-act="closeLib" data-icon="close" data-tip="Close" aria-label="Close the library"></button></div>
+    <nav class="lib-tabs" role="tablist" aria-label="Library">
+      <button data-tab="characters" data-tab-icon="figure" class="active" role="tab" aria-selected="true" title="Characters"><span>Characters</span></button>
+      <button data-tab="objects" data-tab-icon="object" role="tab" aria-selected="false" title="Objects"><span>Objects</span></button>
+      <button data-tab="scenes" data-tab-icon="scene" role="tab" aria-selected="false" title="Scenes"><span>Scenes</span></button>
+      <button data-tab="balloons" data-tab-icon="balloon" role="tab" aria-selected="false" title="Balloons"><span>Balloons</span></button>
     </nav>
     <div id="libBody" class="lib-body"></div>
-    <div class="lib-hint">Drag onto a panel, or click to add to the selected panel.</div>
+    <div class="lib-hint"><span class="mouse-only">Drag onto a panel, or click to add to the selected panel.</span><span class="touch-only">Tap a panel on the page, then tap something here to add it.</span></div>
   </aside>
 
+  <div id="libBackdrop" class="lib-backdrop" hidden></div>
+
   <section class="stage">
+    <button id="libFab" class="lib-fab" data-act="openLib" data-icon="plus" data-tip="Add characters, objects, scenes or balloons" aria-label="Add characters, objects, scenes or balloons" aria-controls="library" aria-expanded="false"></button>
     <div id="stageScroll" class="stage-scroll">
       <div id="canvasWrap" class="canvas-wrap">
         <svg id="page" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -59,11 +77,19 @@
     </div>
     <div class="pagebar">
       <div id="pageTabs" class="page-tabs"></div>
-      <button data-act="addPage" title="Add a page with the same layout">+ Page</button>
-      <button data-act="dupPage" title="Duplicate this page">Duplicate</button>
-      <button data-act="pageLeft" title="Move page left">◀</button>
-      <button data-act="pageRight" title="Move page right">▶</button>
-      <button data-act="delPage" class="danger" title="Delete this page">Delete page</button>
+      <div class="tb-group">
+        <button class="ibtn" data-act="addPage" data-icon="pageAdd" data-tip="Add page" data-sub="New page with the same layout"></button>
+        <button class="ibtn" data-act="dupPage" data-icon="duplicate" data-tip="Duplicate page"></button>
+        <button class="ibtn" data-act="pageLeft" data-icon="chevL" data-tip="Move page left"></button>
+        <button class="ibtn" data-act="pageRight" data-icon="chevR" data-tip="Move page right"></button>
+        <button class="ibtn danger" data-act="delPage" data-icon="trash" data-tip="Delete page"></button>
+      </div>
+      <div class="tb-group zoom-group">
+        <button class="ibtn" data-act="zoomOut" data-icon="zoomOut" data-tip="Zoom out" data-key="Ctrl+wheel"></button>
+        <button id="zoomLabel" class="zoom-label" data-act="zoomFit" data-tip="Fit page to window">100%</button>
+        <button class="ibtn" data-act="zoomIn" data-icon="zoomIn" data-tip="Zoom in" data-key="Ctrl+wheel"></button>
+        <button class="ibtn zoom-fit" data-act="zoomFit" data-icon="fit" data-tip="Fit page to window"></button>
+      </div>
     </div>
   </section>
 
@@ -76,10 +102,10 @@
     <label class="row">Export as
       <select id="exType">
         <option value="pdf">PDF – images (best compatibility)</option>
-        <option value="vector">PDF – vector, selectable text (via print dialog)</option>
+        <option value="vector">PDF – vector, selectable text</option>
         <option value="png">PNG – one image per page</option>
         <option value="zip">PNG – all pages in a .zip</option>
-        <option value="strip">PNG – all pages stacked in one long image</option>
+        <option value="strip">PNG – all pages in one long image</option>
       </select>
     </label>
     <label class="row">Pages
@@ -117,11 +143,12 @@
   <div class="modal-card wide">
     <h2>Welcome to StickStudio 👋</h2>
     <ol class="help-steps">
-      <li><b>Pick a layout</b> on the right (Page layout). Use a preset, or set rows and panels per row. Click a panel to split or merge it, or to change its width.</li>
-      <li><b>Drag a scene</b> from the <i>Scenes</i> tab onto a panel.</li>
-      <li><b>Drag characters, objects and balloons</b> into the panels. Double-click a balloon to type.</li>
-      <li><b>Add pages</b> at the bottom. Drag the page thumbnails to put them in a different order.</li>
-      <li><b>Export PDF</b> when you're done. Your work saves automatically, and <i>Projects</i> lists all your cartoons.</li>
+      <li><b>Pick a layout</b> in <i>Page layout</i> <span class="wide-only">on the right</span><span class="narrow-only">below the page</span>. Use a preset, or set rows and panels per row. <span class="mouse-only">Click</span><span class="touch-only">Tap</span> a panel to split or merge it, or to change its width.</li>
+      <li><b>Add a scene</b> from the <i>Scenes</i> tab<span class="narrow-only"> (the <b>+</b> button opens the library)</span>: <span class="mouse-only">drag it onto a panel, or click a panel and then the scene.</span><span class="touch-only">tap a panel, then tap the scene.</span></li>
+      <li><b>Add characters, objects and balloons</b> the same way. <span class="mouse-only">Double-click</span><span class="touch-only">Double-tap</span> a balloon to type.</li>
+      <li><b>Select something</b> and use the <b>toolbar at the top</b> to change a character's pose and face, or to flip, rotate, resize, align it in its panel or change its layer. Colours and other settings are <span class="wide-only">on the right</span><span class="narrow-only">below the page</span>.</li>
+      <li><b>Add pages</b> with the buttons under the page. <span class="mouse-only">Drag the page thumbnails to put them in a different order.</span><span class="touch-only">Use the ◀ ▶ buttons to move a page.</span></li>
+      <li><b>Export</b> (top right) when you're done. Your work saves automatically, and <i>Projects</i><span class="menu-only"> in the ⋯ menu</span> lists all your cartoons.</li>
     </ol>
     <h3 class="help-h">Shortcuts</h3>
     <div class="shortcut-grid">
@@ -132,13 +159,15 @@
       <kbd>Ctrl+Z / Y</kbd><span>undo / redo</span><kbd>Ctrl+S</kbd><span>save file</span>
       <kbd>Ctrl+O</kbd><span>open file</span><kbd>Ctrl+E</kbd><span>export</span>
       <kbd>Ctrl+P</kbd><span>print</span><kbd>PgUp / PgDn</kbd><span>previous / next page</span>
-      <kbd>Ctrl+wheel</kbd><span>zoom</span><kbd>Ctrl while dragging</kbd><span>no snapping</span>
+      <kbd>Ctrl+wheel</kbd><span>zoom</span><kbd>Esc</kbd><span>deselect</span><kbd>+ / −</kbd><span>bigger / smaller</span><kbd>P / F</kbd><span>pick pose / face</span><kbd>Ctrl while dragging</kbd><span>no snapping</span>
     </div>
     <div class="modal-actions"><button data-act="closeModal" class="primary">Let's go!</button></div>
   </div>
 </div>
 
 <div id="toast" class="toast" hidden></div>
+<div id="tip" class="tip" role="tooltip" hidden></div>
+<div id="picker" class="picker" role="dialog" hidden></div>
 
 <script src="js/figures.js"></script>
 <script src="js/objects.js"></script>
