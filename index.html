@@ -626,24 +626,50 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     bow:      { name: 'Bow',          view: 'side', lean: 55, head: 25, dx: -22, la: [5, 15], ra: [25, 35], ll: [-4, -2], rl: [4, 2] },
     hug:      { name: 'Arms open',    view: 'front', la: [-100, -125], ra: [100, 125], ll: [-9, -5], rl: [9, 5] },
     fly:      { name: 'Fly / super',  view: 'side', lean: 78, dx: -34, la: [70, 60], ra: [100, 100], ll: [-80, -88], rl: [-72, -95], lift: 40 },
+    victory:  { name: 'Victory',      view: 'front', la: [-25, -15], ra: [155, 175], ll: [-20, -10], rl: [20, 10] },
+    flex:     { name: 'Flex',         view: 'front', la: [-85, 165], ra: [85, -165], ll: [-16, -8], rl: [16, 8] },
+    crossed:  { name: 'Arms crossed', view: 'front', la: [-35, 95], ra: [35, -95], ll: [-8, -4], rl: [8, 4] },
+    facepalm: { name: 'Facepalm',     view: 'front', lean: 6, head: 16, la: [-14, -8], ra: [110, -135], ll: [-9, -5], rl: [9, 5] },
+    dab:      { name: 'Dab',          view: 'side', lean: 8, head: 24, la: [105, 115], ra: [65, -135], ll: [-18, -10], rl: [22, 6] },
+    salute:   { name: 'Salute',       view: 'front', la: [-12, -6], ra: [80, -145], ll: [-7, -4], rl: [7, 4] },
+    clap:     { name: 'Clap',         view: 'side', la: [45, 115], ra: [60, 130], ll: [-9, -5], rl: [9, 5] },
+    meditate: { name: 'Meditate',     view: 'front', la: [-45, -15], ra: [45, 15], ll: [-75, 70], rl: [75, -70], ground: 'hip', lift: 14 },
+    crouch:   { name: 'Crouch',       view: 'side', lean: 32, head: 15, la: [-30, 20], ra: [40, 110], ll: [75, -55], rl: [95, -25] },
+    reach:    { name: 'Reach up',     view: 'side', lean: 10, la: [130, 165], ra: [155, 178], ll: [-20, -45], rl: [45, 10] },
+    splitjump:{ name: 'Star jump',    view: 'front', la: [-130, -155], ra: [130, 155], ll: [-85, -80], rl: [85, 80], lift: 32 },
+    sleep:    { name: 'Sleep / Lie',  view: 'side', lean: 84, dx: -10, la: [95, 110], ra: [85, 100], ll: [-88, -90], rl: [-82, -85], ground: 'hip', fxAuto: ['zzz'] },
   };
 
   // ---------------------------------------------------------------- characters
   const CHARACTERS = {
-    boy:    { name: 'Boy',    prop: 'kid',   hair: 'tuft' },
-    girl:   { name: 'Girl',   prop: 'kid',   hair: 'pigtails', dress: true },
-    man:    { name: 'Man',    prop: 'adult', hat: 'fedora' },
-    woman:  { name: 'Woman',  prop: 'adult', hair: 'long', dress: true },
-    cop:    { name: 'Cop',    prop: 'adult', hat: 'police', badge: true, belt: true },
-    king:   { name: 'King',   prop: 'adult', hat: 'crown', robe: 'cape', beard: 'short', handR: 'scepter' },
-    queen:  { name: 'Queen',  prop: 'adult', hair: 'long', hat: 'tiara', dress: true, robe: 'cape' },
-    knight: { name: 'Knight', prop: 'adult', hat: 'helmet', armor: true, handR: 'sword', handL: 'shield' },
-    wizard: { name: 'Wizard', prop: 'adult', hat: 'wizard', beard: 'long', robe: 'long', handL: 'staff' },
-    chef:   { name: 'Chef',   prop: 'adult', hat: 'chef', apron: true },
-    doctor: { name: 'Doctor', prop: 'adult', coat: true, mirror: true },
-    pirate: { name: 'Pirate', prop: 'adult', hat: 'pirate', patch: true, beard: 'short', handR: 'cutlass' },
-    baby:   { name: 'Baby',   prop: 'kid',   hair: 'curl', scale: 0.7 },
-    robot:  { name: 'Robot',  prop: 'adult', robot: true },
+    boy:       { name: 'Boy',       prop: 'kid',   hair: 'tuft' },
+    girl:      { name: 'Girl',      prop: 'kid',   hair: 'pigtails', dress: true },
+    man:       { name: 'Man',       prop: 'adult', hat: 'fedora' },
+    woman:     { name: 'Woman',     prop: 'adult', hair: 'long', dress: true },
+    cop:       { name: 'Cop',       prop: 'adult', hat: 'police', badge: true, belt: true },
+    king:      { name: 'King',      prop: 'adult', hat: 'crown', robe: 'cape', beard: 'short', handR: 'scepter' },
+    queen:     { name: 'Queen',     prop: 'adult', hair: 'long', hat: 'tiara', dress: true, robe: 'cape' },
+    knight:    { name: 'Knight',    prop: 'adult', hat: 'helmet', armor: true, handR: 'sword', handL: 'shield' },
+    wizard:    { name: 'Wizard',    prop: 'adult', hat: 'wizard', beard: 'long', robe: 'long', handL: 'staff' },
+    chef:      { name: 'Chef',      prop: 'adult', hat: 'chef', apron: true },
+    doctor:    { name: 'Doctor',    prop: 'adult', coat: true, mirror: true },
+    pirate:    { name: 'Pirate',    prop: 'adult', hat: 'pirate', patch: true, beard: 'short', handR: 'cutlass' },
+    baby:      { name: 'Baby',      prop: 'kid',   hair: 'curl', scale: 0.7 },
+    robot:     { name: 'Robot',     prop: 'adult', robot: true },
+    ninja:     { name: 'Ninja',     prop: 'adult', hat: 'ninja', belt: true, handR: 'sword' },
+    hero:      { name: 'Superhero', prop: 'adult', robe: 'cape', mask: 'domino', emblem: true, belt: true },
+    astro:     { name: 'Astronaut', prop: 'adult', hat: 'astro', suit: 'astro' },
+    alien:     { name: 'Alien',     prop: 'adult', hat: 'antenna', ears: 'alien' },
+    cowboy:    { name: 'Cowboy',    prop: 'adult', hat: 'cowboy', bandana: true, belt: true },
+    detective: { name: 'Detective', prop: 'adult', hat: 'deerstalker', coat: true, handR: 'magnifier' },
+    witch:     { name: 'Witch',     prop: 'adult', hat: 'witch', hair: 'long', dress: true, robe: 'cape', handR: 'wand' },
+    ghost:     { name: 'Ghost',     prop: 'adult', ghost: true },
+    angel:     { name: 'Angel',     prop: 'adult', hat: 'halo', wings: 'angel', dress: true },
+    devil:     { name: 'Devil',     prop: 'adult', hat: 'horns', wings: 'bat', tail: 'devil', beard: 'goatee', handR: 'trident' },
+    artist:    { name: 'Artist',    prop: 'adult', hat: 'beret', apron: true, mustache: true, handR: 'paintbrush' },
+    grad:      { name: 'Graduate',  prop: 'adult', hat: 'grad', robe: 'long', handR: 'scroll' },
+    athlete:   { name: 'Athlete',   prop: 'kid',   hat: 'cap', jersey: true, handR: 'ball' },
+    magician:  { name: 'Magician',  prop: 'adult', hat: 'tophat', robe: 'cape', mustache: true, handR: 'wand' },
   };
 
   const EXPRESSIONS = {
@@ -661,7 +687,8 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     none: 'Nothing', sword: 'Sword', cutlass: 'Cutlass', shield: 'Shield', staff: 'Staff', scepter: 'Scepter',
     spear: 'Spear', wand: 'Magic wand', bag: 'Handbag', briefcase: 'Briefcase', flower: 'Flower',
     book: 'Book', cup: 'Cup', phone: 'Phone', umbrella: 'Umbrella', sign: 'Sign', balloon: 'Balloon',
-    torch: 'Torch', magnifier: 'Magnifier', flag: 'Flag', pan: 'Frying pan', ball: 'Ball', letter: 'Letter'
+    torch: 'Torch', magnifier: 'Magnifier', flag: 'Flag', pan: 'Frying pan', ball: 'Ball', letter: 'Letter',
+    paintbrush: 'Paintbrush', trident: 'Trident', scroll: 'Diploma / Scroll'
   };
 
   // ---------------------------------------------------------------- math helpers
@@ -763,6 +790,9 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
       case 'pan': return along(`<line x1="0" y1="0" x2="0" y2="18" stroke-width="3.4"/><ellipse cx="0" cy="30" rx="11" ry="12" fill="#555" stroke-width="2.4"/>`);
       case 'ball': return up(`<circle cx="0" cy="-10" r="10" fill="#ff9f43" stroke-width="2.2"/><path d="M-10,-10 h20 M0,-20 v20" stroke-width="1.4"/>`);
       case 'letter': return up(`<rect x="-12" y="-12" width="24" height="16" fill="${PAPER}" stroke-width="2"/><path d="M-12,-12 L0,-3 L12,-12" stroke-width="1.6"/>`);
+      case 'paintbrush': return along(`<line x1="0" y1="0" x2="0" y2="24" stroke-width="2.8"/><path d="M-2,24 L2,24 L3,31 Q0,35 -3,31 Z" fill="#e74c3c" stroke-width="1.6"/>`);
+      case 'trident': return up(`<line x1="0" y1="-82" x2="0" y2="62" stroke-width="3"/><path d="M-10,-96 L-10,-80 Q0,-74 10,-80 L10,-96 M0,-102 L0,-77" stroke-width="2.6"/><path d="M-10,-96 l-2,4 M0,-102 l-2,4 M10,-96 l-2,4" stroke-width="2"/>`);
+      case 'scroll': return along(`<rect x="-4" y="-8" width="8" height="24" rx="3" fill="${PAPER}" stroke-width="2.2"/><line x1="-4" y1="4" x2="4" y2="4" stroke="#e74c3c" stroke-width="2.6"/>`);
       default: return '';
     }
   }
@@ -858,30 +888,51 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     const tdir = (a) => vec(180 - s.lean, a); // along torso upward
     const perp = (a) => vec(90 - s.lean, a);  // perpendicular to torso (forward)
 
-    // --- robe / cape (behind)
+    // --- robe / cape / wings / tail (behind)
+    if (ch.wings === 'angel') {
+      const sh = s.shoulder;
+      const wSide = (d) => `<path d="M${P(sh)} Q${f(sh[0] + d * 24)},${f(sh[1] - 28)} ${f(sh[0] + d * 36)},${f(sh[1] - 8)} Q${f(sh[0] + d * 34)},${f(sh[1] + 10)} ${f(sh[0] + d * 22)},${f(sh[1] + 12)} Q${f(sh[0] + d * 26)},${f(sh[1] + 18)} ${f(sh[0] + d * 14)},${f(sh[1] + 18)} Q${f(sh[0] + d * 8)},${f(sh[1] + 14)} ${P(sh)} Z" fill="${PAPER}" stroke-width="${lw * 0.7}"/>`;
+      back += side ? wSide(-1) : (wSide(-1) + wSide(1));
+    }
+    if (ch.wings === 'bat') {
+      const sh = s.shoulder;
+      const wSide = (d) => `<path d="M${P(sh)} L${f(sh[0] + d * 30)},${f(sh[1] - 20)} Q${f(sh[0] + d * 28)},${f(sh[1] - 2)} ${f(sh[0] + d * 32)},${f(sh[1] + 8)} Q${f(sh[0] + d * 20)},${f(sh[1] + 4)} ${f(sh[0] + d * 18)},${f(sh[1] + 16)} Q${f(sh[0] + d * 10)},${f(sh[1] + 6)} ${P(sh)} Z" fill="${it.cloth || '#2d3436'}" stroke-width="${lw * 0.7}"/>`;
+      back += side ? wSide(-1) : (wSide(-1) + wSide(1));
+    }
+    if (ch.tail === 'devil') {
+      const hp = s.hip;
+      back += `<path d="M${P(hp)} Q${f(hp[0] - 24)},${f(hp[1] + 12)} ${f(hp[0] - 28)},${f(hp[1] - 12)} Q${f(hp[0] - 30)},${f(hp[1] - 24)} ${f(hp[0] - 22)},${f(hp[1] - 26)}" stroke="#c0392b" stroke-width="2.6"/>`
+        + `<path d="M${f(hp[0] - 22)},${f(hp[1] - 26)} l-5,-3 l8,-2 l-1,8 z" fill="#c0392b" stroke="#c0392b" stroke-width="1"/>`;
+    }
     if (ch.robe === 'cape') {
       const top = s.shoulder;
       const bl = [s.hip[0] - 34 + s.lean * 0.4, GROUND - GROUND + Math.max(s.ll.f[1], s.rl.f[1]) - 4];
       const br = [s.hip[0] + 30 + s.lean * 0.6, bl[1] + 2];
-      back += `<path d="M${P(add(top, perp(-10)))} Q${P([bl[0] + 6, (top[1] + bl[1]) / 2])} ${P(bl)} Q${P([(bl[0] + br[0]) / 2, bl[1] + 6])} ${P(br)} Q${P([br[0] - 8, (top[1] + br[1]) / 2])} ${P(add(top, perp(10)))} Z" fill="${it.cloth || '#c0392b'}" stroke-width="${lw * 0.8}"/>`;
+      const capeFill = it.cloth || (ch.hat === 'witch' ? '#4a2c6b' : ch.hat === 'tophat' ? '#2d3436' : '#c0392b');
+      back += `<path d="M${P(add(top, perp(-10)))} Q${P([bl[0] + 6, (top[1] + bl[1]) / 2])} ${P(bl)} Q${P([(bl[0] + br[0]) / 2, bl[1] + 6])} ${P(br)} Q${P([br[0] - 8, (top[1] + br[1]) / 2])} ${P(add(top, perp(10)))} Z" fill="${capeFill}" stroke-width="${lw * 0.8}"/>`;
       back += `<path d="M${P(add(s.neck, perp(-12)))} Q${P(add(s.neck, [0, 6]))} ${P(add(s.neck, perp(12)))}" stroke-width="${lw * 1.6}" stroke-dasharray="1 5"/>`;
     }
 
     // --- legs
     const foot = (leg, dir) => { const d = side ? 1 : dir; return `<line x1="${f(leg.f[0])}" y1="${f(leg.f[1])}" x2="${f(leg.f[0] + d * 7)}" y2="${f(leg.f[1])}" stroke-width="${lw}"/>`; };
-    let legs = line([s.hip, s.ll.k, s.ll.f]) + line([s.hip, s.rl.k, s.rl.f]) + foot(s.ll, -1) + foot(s.rl, 1);
+    let legs = ch.ghost ? '' : (line([s.hip, s.ll.k, s.ll.f]) + line([s.hip, s.rl.k, s.rl.f]) + foot(s.ll, -1) + foot(s.rl, 1));
     if (ch.armor) legs += line([s.hip, s.ll.k, s.ll.f], lw + 5).replace('<polyline', `<polyline opacity="0.18"`) + `<circle cx="${f(s.ll.k[0])}" cy="${f(s.ll.k[1])}" r="4" fill="${PAPER}" stroke-width="2"/><circle cx="${f(s.rl.k[0])}" cy="${f(s.rl.k[1])}" r="4" fill="${PAPER}" stroke-width="2"/>`;
     if (ch.robot) legs = line([s.hip, s.ll.k, s.ll.f], lw + 3) + line([s.hip, s.rl.k, s.rl.f], lw + 3) + `<rect x="${f(s.ll.f[0] - 6)}" y="${f(s.ll.f[1] - 5)}" width="14" height="5" fill="${stroke}"/><rect x="${f(s.rl.f[0] - 6)}" y="${f(s.rl.f[1] - 5)}" width="14" height="5" fill="${stroke}"/>`;
     body += legs;
 
     // --- torso
     const torsoLine = line([s.hip, s.neck]);
-    if (ch.robe === 'long') {
+    if (ch.ghost) {
+      const g = Math.max(s.ll.f[1], s.rl.f[1]) - 4;
+      const cxr = s.hip[0] + s.lean * 0.2;
+      body += `<path d="M${P(add(s.neck, perp(-9)))} L${f(cxr - 22)},${f(g)} Q${f(cxr - 14)},${f(g - 8)} ${f(cxr - 7)},${f(g)} Q${f(cxr)},${f(g + 7)} ${f(cxr + 7)},${f(g)} Q${f(cxr + 14)},${f(g - 8)} ${f(cxr + 22)},${f(g)} L${P(add(s.neck, perp(9)))} Z" fill="${cloth}" stroke-width="${lw * 0.8}"/>`;
+    } else if (ch.robe === 'long') {
       const g = Math.max(s.ll.f[1], s.rl.f[1]) - 2;
       const spread = Math.max(22, Math.abs(s.ll.f[0] - s.rl.f[0]) / 2 + 12);
       const cxr = (s.ll.f[0] + s.rl.f[0]) / 2;
-      body += `<path d="M${P(add(s.neck, perp(-7)))} L${f(cxr - spread)},${f(g)} Q${f(cxr)},${f(g + 5)} ${f(cxr + spread)},${f(g)} L${P(add(s.neck, perp(7)))} Z" fill="${it.cloth || '#6c5ce7'}" stroke-width="${lw * 0.8}"/>`;
-      body += `<path d="M${f(cxr - spread * 0.5)},${f(g - 20)} l3,-5 3,5 M${f(cxr + spread * 0.4)},${f(g - 50)} l3,-5 3,5" stroke-width="1.6"/>`;
+      const robeFill = it.cloth || (ch.hat === 'grad' ? '#2d3436' : '#6c5ce7');
+      body += `<path d="M${P(add(s.neck, perp(-7)))} L${f(cxr - spread)},${f(g)} Q${f(cxr)},${f(g + 5)} ${f(cxr + spread)},${f(g)} L${P(add(s.neck, perp(7)))} Z" fill="${robeFill}" stroke-width="${lw * 0.8}"/>`;
+      if (ch.hat !== 'grad') body += `<path d="M${f(cxr - spread * 0.5)},${f(g - 20)} l3,-5 3,5 M${f(cxr + spread * 0.4)},${f(g - 50)} l3,-5 3,5" stroke-width="1.6"/>`;
     } else if (ch.dress) {
       const top = add(s.neck, tdir(-10));
       const hemY = s.hip[1] + 20;
@@ -896,8 +947,18 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
       const a = add(s.neck, tdir(-4)), b = add(s.hip, tdir(2));
       body += `<path d="M${P(add(a, perp(-13)))} L${P(add(a, perp(13)))} L${P(add(b, perp(13)))} L${P(add(b, perp(-13)))} Z" fill="${it.cloth || '#dfe6e9'}" stroke-width="${lw * 0.8}"/>`
         + `<circle cx="${f((a[0] + b[0]) / 2)}" cy="${f((a[1] + b[1]) / 2)}" r="4" fill="#ff4757" stroke-width="1.6"/>`;
+    } else if (ch.suit === 'astro') {
+      const a = add(s.neck, tdir(-4)), b = add(s.hip, tdir(2));
+      body += `<path d="M${P(add(a, perp(-12)))} L${P(add(a, perp(12)))} L${P(add(b, perp(11)))} L${P(add(b, perp(-11)))} Z" fill="${it.cloth || '#f5f6fa'}" stroke-width="${lw * 0.8}"/>`
+        + `<rect x="${f((a[0] + b[0]) / 2 - 6)}" y="${f((a[1] + b[1]) / 2 - 5)}" width="12" height="10" rx="1.5" fill="#dfe6e9" stroke-width="1.8"/>`
+        + `<circle cx="${f((a[0] + b[0]) / 2 - 2)}" cy="${f((a[1] + b[1]) / 2)}" r="1.5" fill="#e74c3c" stroke="none"/><circle cx="${f((a[0] + b[0]) / 2 + 2.5)}" cy="${f((a[1] + b[1]) / 2)}" r="1.5" fill="#3498db" stroke="none"/>`;
     } else {
       body += torsoLine;
+      if (ch.jersey) {
+        const a = add(s.neck, tdir(-4)), b = add(s.hip, tdir(2));
+        body += `<path d="M${P(add(a, perp(-9)))} L${P(add(a, perp(9)))} L${P(add(b, perp(8)))} L${P(add(b, perp(-8)))} Z" fill="${it.cloth || '#3498db'}" stroke-width="${lw * 0.7}"/>`
+          + `<line x1="${f(add(a, tdir(-12))[0] - 5)}" y1="${f(add(a, tdir(-12))[1])}" x2="${f(add(a, tdir(-12))[0] + 5)}" y2="${f(add(a, tdir(-12))[1])}" stroke="${PAPER}" stroke-width="2"/>`;
+      }
       if (ch.coat) {
         const a = add(s.neck, tdir(-4)), b = add(s.hip, tdir(-18));
         body += `<path d="M${P(add(a, perp(-6)))} L${P(add(b, perp(-13)))} L${P(add(b, perp(13)))} L${P(add(a, perp(6)))} Z" fill="${it.cloth || PAPER}" stroke-width="${lw * 0.7}"/>` + torsoLine.replace(`stroke-width="${lw}"`, `stroke-width="1.5"`);
@@ -907,6 +968,8 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
         body += `<path d="M${P(add(a, perp(-7)))} L${P(add(a, perp(7)))} L${P(add(b, perp(11)))} L${P(add(b, perp(-11)))} Z" fill="${it.cloth || PAPER}" stroke-width="${lw * 0.7}"/>`;
       }
     }
+    if (ch.emblem) { const c = add(s.neck, tdir(-16)); body += `<path transform="translate(${P(c)}) scale(0.7)" d="M0,-8 L7,0 L0,8 L-7,0 Z" fill="#ffd23c" stroke-width="2"/>`; }
+    if (ch.bandana) { const n = s.neck; body += `<path d="M${P(add(n, perp(-7)))} L${P(add(n, perp(7)))} L${P(add(n, tdir(-12)))} Z" fill="#e74c3c" stroke-width="2"/>`; }
     if (ch.badge) { const b = add(s.neck, tdir(-14)); const c = add(b, perp(5)); body += `<path transform="translate(${P(c)}) scale(0.55)" d="M0,-8 l2.4,5 5.6,.8 -4,3.9 1,5.5 -5,-2.6 -5,2.6 1,-5.5 -4,-3.9 5.6,-.8z" fill="#ffd23c" stroke-width="2.4"/>`; }
     if (ch.belt) { const b = add(s.hip, tdir(4)); body += `<line x1="${f(add(b, perp(-7))[0])}" y1="${f(add(b, perp(-7))[1])}" x2="${f(add(b, perp(7))[0])}" y2="${f(add(b, perp(7))[1])}" stroke-width="${lw + 2}"/>`; }
     if (ch.mirror) { const b = add(s.neck, tdir(-9)); body += `<path d="M${P(add(b, perp(-5)))} Q${P(add(add(b, tdir(-14)), perp(0)))} ${P(add(b, perp(5)))}" stroke-width="1.6"/><circle cx="${f(add(add(b, tdir(-15)), perp(0))[0])}" cy="${f(add(add(b, tdir(-15)), perp(0))[1])}" r="3" fill="#ccc" stroke-width="1.4"/>`; }
@@ -928,6 +991,10 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
 
     // --- head
     const baseR = r;
+    if (ch.ears === 'alien') {
+      head += `<path d="M${f(hx - r + 2)},${f(hy - 4)} L${f(hx - r - 10)},${f(hy - 14)} L${f(hx - r + 4)},${f(hy + 4)} Z" fill="${PAPER}" stroke-width="2.2"/>`
+        + `<path d="M${f(hx + r - 2)},${f(hy - 4)} L${f(hx + r + 10)},${f(hy - 14)} L${f(hx + r - 4)},${f(hy + 4)} Z" fill="${PAPER}" stroke-width="2.2"/>`;
+    }
     if (ch.hair === 'long') {
       head += `<path d="M${f(hx - r - 2)},${f(hy - 2)} Q${f(hx - r - 6)},${f(hy + r + 10)} ${f(hx - r + 2)},${f(hy + r + 14)} L${f(hx + r - 2)},${f(hy + r + 14)} Q${f(hx + r + 6)},${f(hy + r + 10)} ${f(hx + r + 2)},${f(hy - 2)} Z" fill="${it.hairColor || stroke}" fill-opacity="${it.hairColor ? 1 : 0.0}" stroke-width="${lw * 0.7}"/>`;
     }
@@ -935,6 +1002,16 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
       head += `<rect x="${f(hx - r)}" y="${f(hy - r)}" width="${f(2 * r)}" height="${f(2 * r)}" rx="4" fill="${PAPER}" stroke-width="${lw}"/><line x1="${f(hx)}" y1="${f(hy - r)}" x2="${f(hx)}" y2="${f(hy - r - 9)}" stroke-width="2.4"/><circle cx="${f(hx)}" cy="${f(hy - r - 11)}" r="3" fill="#ff4757" stroke-width="1.6"/>`;
     } else {
       head += `<circle cx="${f(hx)}" cy="${f(hy)}" r="${baseR}" fill="${PAPER}" stroke-width="${lw}"/>`;
+    }
+    if (ch.hat === 'ninja') {
+      const nf = it.cloth || '#2d3436';
+      head += `<path d="M${f(hx - r)},${f(hy - 5)} A${r},${r} 0 0 1 ${f(hx + r)},${f(hy - 5)} Z" fill="${nf}" stroke-width="2"/>`
+        + `<path d="M${f(hx - r)},${f(hy + 1)} A${r},${r} 0 0 0 ${f(hx + r)},${f(hy + 1)} Z" fill="${nf}" stroke-width="2"/>`
+        + `<path d="M${f(hx - r - 1)},${f(hy - 6)} l-10,-3 m10,5 l-9,3" stroke="${nf}" stroke-width="2.4"/>`;
+    }
+    if (ch.mask === 'domino') {
+      const mx = hx + (side ? r * 0.3 : 0), my = hy - r * 0.18;
+      head += `<path d="M${f(mx - r * 0.65)},${f(my - 4)} Q${f(mx)},${f(my - 2)} ${f(mx + r * 0.65)},${f(my - 4)} L${f(mx + r * 0.6)},${f(my + 4)} Q${f(mx)},${f(my + 2)} ${f(mx - r * 0.6)},${f(my + 4)} Z" fill="${it.cloth || '#2d3436'}" stroke="none"/>`;
     }
     head += face(it.expr || 'happy', s.headC, r, side, stroke, it.flipX);
 
@@ -949,7 +1026,15 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     }
     if (ch.patch) head += `<path d="M${f(hx - r + 2)},${f(hy - 9)} L${f(hx + r - 1)},${f(hy - 3)}" stroke-width="1.6"/><ellipse cx="${f(hx + (side ? r * 0.3 : 0) + r * 0.36)}" cy="${f(hy - r * 0.18)}" rx="4.5" ry="4" fill="${stroke}"/>`;
 
-    // beard
+    // beard & mustache
+    if (ch.mustache) {
+      const mx = hx + (side ? r * 0.3 : 0), my = hy + r * 0.18;
+      head += `<path d="M${f(mx)},${f(my)} q-5,-4 -10,-1 q-3,2 -2,-2 q4,3 12,1 q8,2 12,-1 q1,4 -2,2 q-5,-3 -10,1 z" fill="${it.hairColor || stroke}" stroke-width="1.2"/>`;
+    }
+    if (ch.beard === 'goatee') {
+      const mx = hx + (side ? r * 0.3 : 0);
+      head += `<path d="M${f(mx - 4)},${f(hy + r - 2)} L${f(mx)},${f(hy + r + 8)} L${f(mx + 4)},${f(hy + r - 2)} Z" fill="${it.hairColor || '#2d3436'}" stroke-width="1.6"/>`;
+    }
     if (ch.beard === 'long') head += `<path d="M${f(hx - r + 3)},${f(hy + 4)} Q${f(hx - 8)},${f(hy + r + 30)} ${f(hx + 4)},${f(hy + r + 38)} Q${f(hx + 4)},${f(hy + r + 20)} ${f(hx + r - 2)},${f(hy + 4)} Q${f(hx)},${f(hy + r - 2)} ${f(hx - r + 3)},${f(hy + 4)} Z" fill="${PAPER}" stroke-width="2.4"/><path d="M${f(hx - 7)},${f(hy + 6)} q7,-4 14,0" stroke-width="2"/>`;
     if (ch.beard === 'short') head += `<path d="M${f(hx - r + 2)},${f(hy + 3)} Q${f(hx - r + 4)},${f(hy + r + 8)} ${f(hx + 2)},${f(hy + r + 6)} Q${f(hx + r)},${f(hy + r + 4)} ${f(hx + r - 1)},${f(hy + 3)} Q${f(hx)},${f(hy + r - 3)} ${f(hx - r + 2)},${f(hy + 3)} Z" fill="${it.hairColor || '#555'}" stroke-width="2"/>`;
 
@@ -965,6 +1050,17 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
       case 'chef': over += hat(`<path d="M-12,-${r - 3} L-12,-${r + 8} Q-22,-${r + 14} -14,-${r + 22} Q-8,-${r + 32} 0,-${r + 25} Q8,-${r + 32} 14,-${r + 22} Q22,-${r + 14} 12,-${r + 8} L12,-${r - 3} Z" fill="${PAPER}" stroke-width="2.4"/><line x1="-12" y1="-${r + 2}" x2="12" y2="-${r + 2}" stroke-width="2"/>`); break;
       case 'pirate': over += hat(`<path d="M-26,-${r - 6} Q-20,-${r + 20} 0,-${r + 12} Q20,-${r + 20} 26,-${r - 6} Q0,-${r + 2} -26,-${r - 6} Z" fill="#2d3436" stroke-width="2.4"/><circle cx="0" cy="-${r + 2}" r="3.2" fill="${PAPER}" stroke="${PAPER}" stroke-width="0"/>`); break;
       case 'helmet': over += hat(`<path d="M-${r + 2},4 Q-${r + 3},-${r + 4} 0,-${r + 3} Q${r + 3},-${r + 4} ${r + 2},4 L${r + 2},-3 L-${r + 2},-3 Z" fill="${it.cloth || '#dfe6e9'}" stroke-width="2.6"/><rect x="-${r + 2}" y="-3" width="${2 * r + 4}" height="${f(r * 0.45)}" fill="${stroke}" stroke-width="1"/><circle cx="${side ? 4 : -6}" cy="${f(-3 + r * 0.22)}" r="1.8" fill="${PAPER}" stroke="none"/><circle cx="${side ? 12 : 6}" cy="${f(-3 + r * 0.22)}" r="1.8" fill="${PAPER}" stroke="none"/><path d="M0,-${r + 3} Q-10,-${r + 18} -22,-${r + 10} Q-12,-${r + 12} -8,-${r + 2}" fill="#e74c3c" stroke-width="2"/><line x1="0" y1="-${r + 3}" x2="0" y2="-4" stroke-width="1.6"/>`); break;
+      case 'astro': over += hat(`<circle cx="0" cy="0" r="${r + 7}" fill="#e6f3ff" fill-opacity="0.22" stroke-width="2.6"/><path d="M-${r + 3},${r + 4} Q0,${r + 9} ${r + 3},${r + 4}" stroke-width="3.2"/><path d="M-${r + 1},-${r - 2} Q-${r - 3},-${r + 3} -${r - 7},-${r + 1}" stroke="${PAPER}" stroke-width="2.2"/>`); break;
+      case 'antenna': over += hat(`<line x1="-6" y1="-${r - 1}" x2="-11" y2="-${r + 13}" stroke-width="2.2"/><circle cx="-11" cy="-${r + 15}" r="3" fill="#2ecc71" stroke-width="1.8"/><line x1="6" y1="-${r - 1}" x2="11" y2="-${r + 13}" stroke-width="2.2"/><circle cx="11" cy="-${r + 15}" r="3" fill="#2ecc71" stroke-width="1.8"/>`); break;
+      case 'cowboy': over += hat(`<path d="M-26,-${r - 2} Q-16,-${r - 8} -12,-${r - 4} L12,-${r - 4} Q16,-${r - 8} 26,-${r - 2}" stroke-width="3" fill="none"/><path d="M-13,-${r - 3} L-10,-${r + 15} Q-4,-${r + 12} 0,-${r + 15} Q4,-${r + 12} 10,-${r + 15} L13,-${r - 3} Z" fill="${it.cloth || '#c89d6c'}" stroke-width="2.4"/><path d="M-12,-${r + 2} L12,-${r + 2}" stroke-width="2.6"/>`); break;
+      case 'deerstalker': over += hat(`<path d="M-16,-${r - 4} Q-14,-${r + 14} 0,-${r + 14} Q14,-${r + 14} 16,-${r - 4} Z" fill="${it.cloth || '#a0826d'}" stroke-width="2.4"/><path d="M-22,-${r - 3} Q-14,-${r - 7} -10,-${r - 4} M10,-${r - 4} Q14,-${r - 7} 22,-${r - 3}" stroke-width="3"/>`); break;
+      case 'witch': over += hat(`<path d="M-26,-${r - 4} Q0,-${r + 2} 26,-${r - 4}" stroke-width="3.2"/><path d="M-14,-${r - 2} Q-4,-${r + 26} 3,-${r + 42} Q8,-${r + 24} 14,-${r - 2} Z" fill="${it.cloth || '#2d3436'}" stroke-width="2.6"/><rect x="-7" y="-${r + 5}" width="14" height="5" fill="#ffd23c" stroke-width="1.4"/>`); break;
+      case 'halo': over += hat(`<ellipse cx="0" cy="-${r + 11}" rx="13" ry="4" fill="none" stroke="#f1c40f" stroke-width="2.8"/>`); break;
+      case 'horns': over += hat(`<path d="M-9,-${r - 3} Q-16,-${r + 14} -6,-${r + 17} Q-10,-${r + 8} -5,-${r - 1} Z" fill="#c0392b" stroke-width="2"/><path d="M9,-${r - 3} Q16,-${r + 14} 6,-${r + 17} Q10,-${r + 8} 5,-${r - 1} Z" fill="#c0392b" stroke-width="2"/>`); break;
+      case 'beret': over += hat(`<path d="M-17,-${r - 4} Q-18,-${r + 15} 2,-${r + 14} Q18,-${r + 13} 15,-${r - 4} Z" fill="${it.cloth || '#c0392b'}" stroke-width="2.4"/><line x1="-2" y1="-${r + 14}" x2="-1" y2="-${r + 18}" stroke-width="2.4"/>`); break;
+      case 'grad': over += hat(`<path d="M-13,-${r - 4} L-13,-${r + 6} L13,-${r + 6} L13,-${r - 4} Z" fill="${it.cloth || '#2d3436'}" stroke-width="2.2"/><path d="M-22,-${r + 7} L0,-${r + 13} L22,-${r + 7} L0,-${r + 1} Z" fill="${it.cloth || '#2d3436'}" stroke-width="2.2"/><path d="M14,-${r + 6} L18,-${r - 4}" stroke="#ffd23c" stroke-width="2.2"/><circle cx="18" cy="-${r - 5}" r="2.2" fill="#ffd23c" stroke="none"/>`); break;
+      case 'cap': over += hat(`<path d="M-15,-${r - 4} A15,15 0 0 1 15,-${r - 4} Z" fill="${it.cloth || '#e74c3c'}" stroke-width="2.4"/><path d="M-2,-${r - 4} Q12,-${r - 7} 23,-${r - 2}" stroke-width="3.2"/>`); break;
+      case 'tophat': over += hat(`<path d="M-22,-${r - 3} L22,-${r - 3}" stroke-width="3.2"/><path d="M-13,-${r - 3} L-14,-${r + 22} L14,-${r + 22} L13,-${r - 3} Z" fill="${it.cloth || '#2d3436'}" stroke-width="2.4"/><line x1="-13" y1="-${r + 3}" x2="13" y2="-${r + 3}" stroke="#c0392b" stroke-width="3"/>`); break;
     }
 
     const fxList = (it.fx || []).slice();
