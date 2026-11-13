@@ -614,9 +614,10 @@
       const cats = {};
       for (const [id, o] of Object.entries(OBJ.OBJECTS)) (cats[o.cat] = cats[o.cat] || []).push([id, o]);
       for (const [cat, list] of Object.entries(cats)) {
-        h += `<div class="lib-section">${cat}</div><div class="grid">`;
+        const key = 'obj:' + cat;
+        h += `<details class="lib-cat" data-libcat="${esc(key)}" ${state.closed[key] ? '' : 'open'}><summary class="lib-section"><span>${esc(cat)}</span><small>${list.length}</small></summary><div class="grid">`;
         list.forEach(([id, o]) => h += thumbHtml({ kind: 'object', obj: id }, objThumb(id), o.name));
-        h += `</div>`;
+        h += `</div></details>`;
       }
     } else if (state.tab === 'scenes') {
       h += `<p class="hint" style="margin-top:0">Drop a scene on a panel to set its background. Fine-tune it in the <b>Panel</b> section on the right.</p><div class="grid wide">`;
@@ -666,6 +667,10 @@
     const t = e.target.closest('.thumb[data-spec]');
     if (t) { addFromSpec(JSON.parse(t.dataset.spec)); if (libIsSheet()) setLibOpen(false); } // show the result straight away
   });
+  $('#libBody').addEventListener('toggle', e => {
+    const d = e.target;
+    if (d.dataset && d.dataset.libcat) state.closed[d.dataset.libcat] = !d.open;
+  }, true);
   $('#libBody').addEventListener('dragstart', e => {
     const t = e.target.closest('.thumb[data-spec]'); if (!t) return;
     e.dataTransfer.setData('text/plain', t.dataset.spec);

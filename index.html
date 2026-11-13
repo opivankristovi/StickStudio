@@ -115,6 +115,17 @@ button.with-icon { display: inline-flex; align-items: center; gap: 6px; padding:
 .lib-body { flex: 1; overflow-y: auto; padding: 10px; }
 .lib-hint { padding: 8px 10px; color: var(--muted); border-top: 1px solid var(--line); font-size: 12px; }
 .lib-section { margin: 4px 0 6px; font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
+.lib-cat { margin-bottom: 4px; }
+.lib-cat > summary.lib-section {
+  list-style: none; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px;
+  padding: 5px 6px; margin: 2px -4px 6px; border-radius: 6px;
+}
+.lib-cat > summary.lib-section::-webkit-details-marker { display: none; }
+.lib-cat > summary.lib-section::before { content: ""; width: 5px; height: 5px; border-right: 1.8px solid currentColor; border-bottom: 1.8px solid currentColor; transform: rotate(-45deg); transition: transform .15s; margin-right: 2px; flex-shrink: 0; }
+.lib-cat[open] > summary.lib-section::before { transform: rotate(45deg); }
+.lib-cat > summary.lib-section:hover { background: var(--hover); color: var(--ink); }
+.lib-cat > summary.lib-section span { flex: 1; }
+.lib-cat > summary.lib-section small { font-weight: 500; opacity: 0.7; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; margin-bottom: 14px; }
 .grid.small { grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 4px; }
 .grid.wide { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
@@ -2182,9 +2193,10 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
       const cats = {};
       for (const [id, o] of Object.entries(OBJ.OBJECTS)) (cats[o.cat] = cats[o.cat] || []).push([id, o]);
       for (const [cat, list] of Object.entries(cats)) {
-        h += `<div class="lib-section">${cat}</div><div class="grid">`;
+        const key = 'obj:' + cat;
+        h += `<details class="lib-cat" data-libcat="${esc(key)}" ${state.closed[key] ? '' : 'open'}><summary class="lib-section"><span>${esc(cat)}</span><small>${list.length}</small></summary><div class="grid">`;
         list.forEach(([id, o]) => h += thumbHtml({ kind: 'object', obj: id }, objThumb(id), o.name));
-        h += `</div>`;
+        h += `</div></details>`;
       }
     } else if (state.tab === 'scenes') {
       h += `<p class="hint" style="margin-top:0">Drop a scene on a panel to set its background. Fine-tune it in the <b>Panel</b> section on the right.</p><div class="grid wide">`;
@@ -2234,6 +2246,10 @@ kbd { background: var(--field); border: 1px solid var(--line); border-bottom-wid
     const t = e.target.closest('.thumb[data-spec]');
     if (t) { addFromSpec(JSON.parse(t.dataset.spec)); if (libIsSheet()) setLibOpen(false); } // show the result straight away
   });
+  $('#libBody').addEventListener('toggle', e => {
+    const d = e.target;
+    if (d.dataset && d.dataset.libcat) state.closed[d.dataset.libcat] = !d.open;
+  }, true);
   $('#libBody').addEventListener('dragstart', e => {
     const t = e.target.closest('.thumb[data-spec]'); if (!t) return;
     e.dataTransfer.setData('text/plain', t.dataset.spec);
